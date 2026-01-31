@@ -1,11 +1,11 @@
 local Libary = loadstring(game:HttpGet("https://pastefy.app/TYVuPNOS/raw"))()
 workspace.FallenPartsDestroyHeight = -math.huge
 
-local Window = redzlib:MakeWindow({
-  Title = "LYRA HUB",
-  SubTitle = "By:Kayrus999 & Xicrinho",
-  SaveFolder = "LinuxHub_Brookhaven"
-})
+local Window = Libary:MakeWindow({
+    Title = "CHAOS HUB",
+    SubTitle = "zzCHAOS2",
+    LoadText = "CHAOS ARQUIVO",
+    Flags = "chaoshub_Broookhaven"
 
 Window:AddMinimizeButton({
     Button = { 
