@@ -27,7 +27,7 @@ infoTab:AddDiscordInvite({
 })
 
 infoTab:AddSection({ "informaÃ§oes do script" })
-infoTab:AddParagraph({ "Roblox Dos Donos: Apenas_eu362/murilo_12303" })
+infoTab:AddParagraph({ "Roblox Dos Donos: "xxz_sarahh" })
 infoTab:AddParagraph({ "vocÃª esta usando:", "Lyra Hub" })
 
 infoTab:AddSection({ "InformaÃ§oes" })
