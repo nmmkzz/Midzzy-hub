@@ -1,4 +1,5 @@
-local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDzHUB/RedzLibV5/main/Source.Lua"))()
+local Libary = loadstring(game:HttpGet("https://pastefy.app/TYVuPNOS/raw"))()
+workspace.FallenPartsDestroyHeight = -math.huge
 
 local Window = redzlib:MakeWindow({
   Title = "LYRA HUB",
