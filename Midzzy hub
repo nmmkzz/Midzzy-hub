@@ -1,35 +1,4 @@
-local success, content = pcall(function()
-    return game:HttpGet("https://nexviewsservice.shardweb.app/services/nytherune_hub/start")
-end)
 
-local found = string.match(content or "", "reg") ~= nil
-print("Checking the connection:", found)
-
-
-
-
-
-
-
-game:GetService("ReplicatedStorage").RE["1RPNam1eTex1t"]:FireServer(table.unpack({
-    [1] = "RolePlayBio",
-    [2] = "Nytherune Hub 2",
-}))
-
-game:GetService("ReplicatedStorage").RE["1RPNam1eTex1t"]:FireServer(table.unpack({
-    [1] = "RolePlayName",
-    [2] = "[ Nytherune Hub User ]",
-}))
-
-game:GetService("ReplicatedStorage").RE["1RPNam1eColo1r"]:FireServer(table.unpack({
-    [1] = "PickingRPBioColor",
-    [2] = Color3.new(0, 0, 0),
-}))
-
-game:GetService("ReplicatedStorage").RE["1RPNam1eColo1r"]:FireServer(table.unpack({
-    [1] = "PickingRPNameColor",
-    [2] = Color3.new(255, 255, 255),
-}))
 
 local Libary = loadstring(game:HttpGet("https://raw.githubusercontent.com/wx-sources/NytheruneLibrary/refs/heads/main/Redzhubui.txt"))()
 workspace.FallenPartsDestroyHeight = -math.huge
