@@ -36,7 +36,6 @@ local MyLibrary = {
     Nota: Funcionalidades que dependem de executors específicos (ex: getgenv, request, etc.) foram mantidas, mas podem precisar de ajustes.
 ]]
 
--- Carrega a redzLib
 local redzLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/speedvip1/Main/refs/heads/main/redz%20lib%20V4.lua"))()
 
 -- Serviços do jogo
