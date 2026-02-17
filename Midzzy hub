@@ -1,1568 +1,667 @@
--- WindUI Carregar
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-
--- Variáveis globais
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local VirtualUser = game:GetService("VirtualUser")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
-local camera = workspace.CurrentCamera
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
-local GuiService = game:GetService("GuiService")
-local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
 
--- Destruir GUIs antigas
-for _, gui in pairs(CoreGui:GetChildren()) do
-    if gui:IsA("ScreenGui") and (gui.Name == "VisualWorks" or gui.Name == "WindUI" or gui:FindFirstChild("MainFrame") or gui.Name == "Emotes") then
-        gui:Destroy()
+local Player = Players.LocalPlayer
+local PlayerMouse = Player:GetMouse()
+
+local MyLibrary = {
+    Themes = {        
+        Main = {
+       
+        -- TEMA: Azul Violeta com Texto Branco
+        ["Azul Violeta"] = {
+            ["Color Hub 1"] = ColorSequence.new({
+                ColorSequenceKeypoint.new(0.00, Color3.fromRGB(10, 10, 10)),    -- preto
+                ColorSequenceKeypoint.new(0.50, Color3.fromRGB(75, 0, 130)),    -- azul violeta escuro
+                ColorSequenceKeypoint.new(1.00, Color3.fromRGB(138, 43, 226))   -- violeta claro
+            }),
+            ["Color Hub 2"] = Color3.fromRGB(0, 0, 0),
+            ["Color Stroke"] = Color3.fromRGB(138, 43, 226),     -- violeta claro
+            ["Color Theme"] = Color3.fromRGB(20, 20, 20),        -- preto suave
+            ["Color Text"] = Color3.fromRGB(255, 255, 255),      -- BRANCO
+            ["Color Dark Text"] = Color3.fromRGB(200, 200, 200)  -- branco acinzentado
+        },
+    },
+}
+
+--[[
+    Script: SourceOnce - Tracery [BETA] (Convertido para redzLib V4)
+    Criado originalmente por: Artsynia & fxengif
+    Adaptado para redzLib por: [Seu Nome]
+    Nota: Funcionalidades que dependem de executors específicos (ex: getgenv, request, etc.) foram mantidas, mas podem precisar de ajustes.
+]]
+
+-- Carrega a redzLib
+local redzLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/speedvip1/Main/refs/heads/main/redz%20lib%20V4.lua"))()
+
+-- Serviços do jogo
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MarketplaceService = game:GetService("MarketplaceService")
+local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
+
+-- Variáveis do jogador local
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:FindFirstChildWhichIsA("Humanoid")
+local RootPart = Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso")
+
+-- Verificação do jogo (ID do jogo alvo)
+local TARGET_GAME_ID = 893973440 -- Substitua pelo ID do jogo correto, se necessário
+if game.PlaceId ~= TARGET_GAME_ID then
+    -- Usa uma notificação simples, já que a da redzLib pode não estar pronta
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Jogo Incorreto",
+        Text = "Este script não foi feito para este jogo.",
+        Duration = 5
+    })
+    return
+end
+
+-- Tenta obter o nome do jogo
+local productInfo = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end) and {Name = "Jogo Desconhecido"} or {Name = "Jogo Desconhecido"}
+local GameName = productInfo.Name
+
+-- Variáveis globais do script (para compartilhar entre funções)
+_G.SHub = _G.SHub or {}
+_G.SHub.Toggles = _G.SHub.Toggles or {}
+_G.SHub.Values = _G.SHub.Values or {}
+_G.SHub.Connections = _G.SHub.Connections or {}
+_G.SHub.WPlr = _G.SHub.WPlr or {} -- Lista de players para ignorar no aura
+
+-- Atualiza a referência do personagem quando ele morrer ou spawnar
+local function updateCharacter()
+    Character = LocalPlayer.Character
+    if Character then
+        Humanoid = Character:FindFirstChildWhichIsA("Humanoid")
+        RootPart = Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso")
+    end
+end
+_G.SHub.Connections.CharacterAdded = LocalPlayer.CharacterAdded:Connect(updateCharacter)
+updateCharacter() -- Chama uma vez para configurar no início
+
+-- Função para encontrar o RootPart ou Humanoid de um personagem
+local function findRoot(character, returnHumanoid)
+    if not character then return nil end
+    local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    if returnHumanoid then
+        return humanoid
+    else
+        return rootPart
     end
 end
 
--- Anti AFK e FPS Cap
-setfpscap(444)
-LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
-
--- ============= FUNÇÕES DE ANIMAÇÃO =============
-
--- Verificar R15
-if not game.Players.LocalPlayer.Character or game.Players.LocalPlayer.Character:WaitForChild("Humanoid").RigType ~= Enum.HumanoidRigType.R15 then 
-    game.StarterGui:SetCore("SendNotification", {Title = "R6", Text = "You're on R6, bro. Change to R15!", Duration = 60})
+-- Função para obter o container da UI (CoreGui ou PlayerGui)
+local function getGuiParent()
+    return CoreGui:FindFirstChild("RobloxGui") or CoreGui or PlayerGui
 end
 
--- Sistema de Notificação
-local Notifbro = {}
-function Notify(titletxt, text, time)
-    coroutine.wrap(function()
-        local GUI = Instance.new("ScreenGui")
-        local Main = Instance.new("Frame", GUI)
-        local title = Instance.new("TextLabel", Main)
-        local message = Instance.new("TextLabel", Main)
+-- Função para arredondar números
+local function round(num, numDecimalPlaces)
+    local mult = 10^(numDecimalPlaces or 0)
+    return math.floor(num * mult + 0.5) / mult
+end
 
-        GUI.Name = "BackgroundNotif"
-        GUI.Parent = CoreGui
-
-        local sw = workspace.CurrentCamera.ViewportSize.X
-        local sh = workspace.CurrentCamera.ViewportSize.Y
-        local nh = sh / 7
-        local nw = sw / 5
-
-        Main.Name = "MainFrame"
-        Main.BackgroundColor3 = Color3.new(0.156863, 0.156863, 0.156863)
-        Main.BackgroundTransparency = 0.2
-        Main.BorderSizePixel = 0
-        Main.Size = UDim2.new(0, nw, 0, nh)
-
-        title.BackgroundColor3 = Color3.new(0, 0, 0)
-        title.BackgroundTransparency = 0.9
-        title.Size = UDim2.new(1, 0, 0, nh / 2)
-        title.Font = Enum.Font.GothamBold
-        title.Text = titletxt
-        title.TextColor3 = Color3.new(1, 1, 1)
-        title.TextScaled = true
-
-        message.BackgroundColor3 = Color3.new(0, 0, 0)
-        message.BackgroundTransparency = 1
-        message.Position = UDim2.new(0, 0, 0, nh / 2)
-        message.Size = UDim2.new(1, 0, 1, -nh / 2)
-        message.Font = Enum.Font.Gotham
-        message.Text = text
-        message.TextColor3 = Color3.new(1, 1, 1)
-        message.TextScaled = true
-
-        local offset = 50
-        for _, notif in ipairs(Notifbro) do
-            offset = offset + notif.Size.Y.Offset + 10
+-- Obtém a lista de jogadores (exceto o local)
+local function getPlayerList(returnNames)
+    local list = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(list, returnNames and p.Name or p)
         end
+    end
+    return list
+end
 
-        Main.Position = UDim2.new(1, 5, 0, offset)
-        table.insert(Notifbro, Main)
+-- --- CRIAÇÃO DA JANELA PRINCIPAL ---
+local Window = redzLib:MakeWindow({
+    Title = "SourceOnce • Tracery [BETA]",
+    SubTitle = "by Artsynia & fxengif • Convertido",
+    LoadText = "Carregando " .. GameName .. "...",
+    DefaultTheme = "Default", -- Tema padrão
+    Flags = "SourceOnce_Flags.lua" -- Arquivo para salvar flags
+})
 
-        task.wait(0.1)
-        Main:TweenPosition(UDim2.new(1, -nw, 0, offset), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.5, true)
-        Main:TweenSize(UDim2.new(0, nw * 1.06, 0, nh * 1.06), Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.5, true)
-        task.wait(0.1)
-        Main:TweenSize(UDim2.new(0, nw, 0, nh), Enum.EasingDirection.Out, Enum.EasingStyle.Elastic, 0.2, true)
+-- --- CRIAÇÃO DAS ABAS ---
+local TabMain = Window:MakeTab({Name = "Main", Icon = "menu"})
+local TabLocal = Window:MakeTab({Name = "Local", Icon = "user"})
+local TabAnti = Window:MakeTab({Name = "Anti & Notify", Icon = "user-check"})
+local TabGame = Window:MakeTab({Name = "Game & Ragebait", Icon = "server"})
+local TabCredits = Window:MakeTab({Name = "Project & Credit", Icon = "heart"})
+local TabSettings = Window:MakeTab({Name = "Settings", Icon = "settings"})
 
-        task.wait(time)
-
-        Main:TweenSize(UDim2.new(0, nw * 1.06, 0, nh * 1.06), Enum.EasingDirection.In, Enum.EasingStyle.Elastic, 0.2, true)
-        task.wait(0.2)
-        Main:TweenSize(UDim2.new(0, nw, 0, nh), Enum.EasingDirection.In, Enum.EasingStyle.Elastic, 0.2, true)
-        task.wait(0.2)
-        Main:TweenPosition(UDim2.new(1, 5, 0, offset), Enum.EasingDirection.In, Enum.EasingStyle.Bounce, 0.5, true)
-        task.wait(0.1)
-
-        GUI:Destroy()
-        for i, notif in ipairs(Notifbro) do
-            if notif == Main then
-                table.remove(Notifbro, i)
+-- --- FUNÇÕES DE MAPA E ESP (Adaptadas) ---
+local function GetCurrentMap()
+    local map
+    local currentMapVal = ReplicatedStorage:FindFirstChild("CurrentMap")
+    if currentMapVal and currentMapVal:IsA("ObjectValue") and currentMapVal.Value and currentMapVal.Value:IsDescendantOf(Workspace) then
+        map = currentMapVal.Value
+    end
+    if not map then
+        for _, v in pairs(Workspace:GetChildren()) do
+            if v:FindFirstChild("ComputerTable") or v:FindFirstChild("FreezePod") then
+                map = v
                 break
             end
         end
-
-        for i, notif in ipairs(Notifbro) do
-            local newOffset = 50 + (nh + 10) * (i - 1)
-            notif:TweenPosition(UDim2.new(1, -nw, 0, newOffset), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.5, true)
-        end
-    end)()
+    end
+    return map
 end
 
--- ============= FUNÇÕES DE REMOÇÃO DE ACESSÓRIOS =============
-local function RemoveAllAccessories()
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    for _, accessory in pairs(character:GetChildren()) do
-        if accessory:IsA("Accessory") or accessory:IsA("Hat") or accessory:IsA("Tool") then
-            accessory:Destroy()
-        end
-    end
-    
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("Weld") and part.Name == "HeadWeld" then
-            part:Destroy()
-        end
-    end
-    
-    WindUI:Notify({
-        Title = "Remover Acessórios",
-        Content = "Todos os acessórios foram removidos!",
-        Duration = 3,
-        Image = "success"
-    })
+-- Container para os ESPs
+local espContainer = Instance.new("Folder")
+espContainer.Name = "SourceOnce_ESP"
+espContainer.Parent = getGuiParent()
+
+-- Função para criar um BillboardGui
+local function createBillboard(part, id, espParent, color)
+    local billboard = espParent:FindFirstChild(id)
+    if billboard then billboard:Destroy() end
+
+    billboard = Instance.new("BillboardGui")
+    billboard.Name = id
+    billboard.Adornee = part
+    billboard.Size = UDim2.new(5, 0, 5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.LightInfluence = 0
+    billboard.Parent = espParent
+
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.fromScale(1, 0.8)
+    label.Position = UDim2.fromScale(0, 0.1)
+    label.BackgroundTransparency = 1
+    label.TextStrokeTransparency = 0.5
+    label.TextSize = 13
+    label.Font = Enum.Font.GothamSemibold
+    label.TextColor3 = color or Color3.new(1, 1, 1)
+    label.Text = "Carregando..."
+    label.Parent = billboard
+
+    local arrow = Instance.new("TextLabel")
+    arrow.Name = "Arrow"
+    arrow.Size = UDim2.new(1, 0, 0, 20)
+    arrow.Position = UDim2.new(0.5, 0, 1, 0)
+    arrow.AnchorPoint = Vector2.new(0.5, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.TextColor3 = color or Color3.new(1, 1, 1)
+    arrow.Font = Enum.Font.FredokaOne
+    arrow.TextScaled = true
+    arrow.Rotation = 180
+    arrow.Text = "^"
+    arrow.Parent = billboard
+
+    return billboard, label, arrow
 end
 
--- ============= FUNÇÕES DE WELD =============
-local function WeldAccessory(character, accessory)
-    for _, child in pairs(character:GetChildren()) do
-        if child:IsA("Accessory") and child.Name == accessory.Name then
-            child:Destroy()
+-- Função para criar/atualizar Highlight
+local function applyHighlight(part, color)
+    local hl = part:FindFirstChild("SourceOnce_Highlight")
+    if not hl then
+        hl = Instance.new("Highlight")
+        hl.Name = "SourceOnce_Highlight"
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.FillTransparency = 0.5
+        hl.OutlineTransparency = 0.85
+        hl.Parent = part
+    end
+    hl.Adornee = part
+    hl.FillColor = color or Color3.new(0, 0, 0)
+    hl.OutlineColor = color or Color3.new(0, 0, 0)
+    return hl
+end
+
+-- --- CONTEÚDO DAS ABAS ---
+
+-- ABA MAIN
+TabMain:AddSection({Name = "ESP"})
+
+-- ESP Player
+TabMain:AddToggle({
+    Name = "ESP Player",
+    Default = false,
+    Flag = "EspPlayer",
+    Callback = function(state)
+        _G.SHub.Toggles.EspPlayer = state
+        local espConnection = _G.SHub.Connections.EspPlayer
+
+        if state then
+            if espConnection then espConnection:Disconnect() end
+            _G.SHub.Connections.EspPlayer = RunService.RenderStepped:Connect(function()
+                if not _G.SHub.Toggles.EspPlayer then
+                    _G.SHub.Connections.EspPlayer:Disconnect()
+                    _G.SHub.Connections.EspPlayer = nil
+                    -- Limpar ESP
+                    for _, child in pairs(espContainer:GetChildren()) do
+                        if child.Name:find("Player_") then child:Destroy() end
+                    end
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p.Character then
+                            local hl = p.Character:FindFirstChild("SourceOnce_Highlight")
+                            if hl then hl:Destroy() end
+                        end
+                    end
+                    return
+                end
+
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player == LocalPlayer then continue end
+                    local char = player.Character
+                    if not char then continue end
+
+                    local head = char:FindFirstChild("Head")
+                    local root = findRoot(char)
+                    if not head or not root or not RootPart then continue end
+
+                    -- Determinar cor baseado no estado (simplificado)
+                    local color = Color3.fromRGB(200, 200, 200)
+                    local stats = player:FindFirstChild("TempPlayerStatsModule")
+                    if stats then
+                        if stats:FindFirstChild("IsBeast") and stats.IsBeast.Value then
+                            color = Color3.fromRGB(255, 0, 0)
+                        elseif stats:FindFirstChild("Captured") and stats.Captured.Value then
+                            color = Color3.fromRGB(0, 0, 255)
+                        elseif stats:FindFirstChild("Health") and stats.Health.Value > 0 then
+                            color = Color3.fromRGB(0, 255, 0)
+                        end
+                    end
+
+                    local espId = "Player_" .. player.Name
+                    local billboard = espContainer:FindFirstChild(espId)
+                    if not billboard then
+                        billboard, label = createBillboard(head, espId, espContainer, color)
+                    else
+                        billboard.Adornee = head
+                        local label = billboard:FindFirstChild("Label")
+                        if label then
+                            local dist = round((root.Position - RootPart.Position).Magnitude, 1)
+                            label.Text = string.format("%s • %d studs", player.Name, dist)
+                            label.TextColor3 = color
+                        end
+                    end
+                    applyHighlight(char, color)
+                end
+            end)
+        else
+            if espConnection then espConnection:Disconnect() end
         end
     end
-    
-    accessory.Parent = character
-    local handle = accessory:FindFirstChild("Handle")
-    
-    if handle then
-        local attachment = handle:FindFirstChildOfClass("Attachment")
-        if attachment then
-            local head = character:FindFirstChild("Head")
-            if head then
-                for _, headAttachment in pairs(head:GetChildren()) do
-                    if headAttachment:IsA("Attachment") and headAttachment.Name == attachment.Name then
-                        local weld = Instance.new("Weld")
-                        weld.Name = "HeadWeld_" .. accessory.Name
-                        weld.Part0 = head
-                        weld.Part1 = handle
-                        weld.C0 = headAttachment.CFrame
-                        weld.C1 = attachment.CFrame
-                        weld.Parent = head
-                        break
+})
+
+-- ESP Computador
+TabMain:AddToggle({
+    Name = "ESP Computador",
+    Default = false,
+    Flag = "EspComputer",
+    Callback = function(state)
+        _G.SHub.Toggles.EspComputer = state
+        local espConnection = _G.SHub.Connections.EspComputer
+
+        if state then
+            if espConnection then espConnection:Disconnect() end
+            _G.SHub.Connections.EspComputer = RunService.RenderStepped:Connect(function()
+                if not _G.SHub.Toggles.EspComputer then
+                    _G.SHub.Connections.EspComputer:Disconnect()
+                    _G.SHub.Connections.EspComputer = nil
+                    for _, child in pairs(espContainer:GetChildren()) do
+                        if child.Name:find("Computer_") then child:Destroy() end
+                    end
+                    return
+                end
+
+                local map = GetCurrentMap()
+                if not map or not RootPart then return end
+
+                for _, obj in pairs(map:GetChildren()) do
+                    if obj.Name == "ComputerTable" then
+                        local part = obj:FindFirstChildWhichIsA("BasePart")
+                        if not part then continue end
+
+                        local color = Color3.fromRGB(255, 255, 0)
+                        local screen = obj:FindFirstChild("Screen")
+                        if screen and screen:IsA("BasePart") then
+                            color = screen.Color
+                        end
+
+                        local espId = "Computer_" .. obj:GetDebugId()
+                        local billboard = espContainer:FindFirstChild(espId)
+                        if not billboard then
+                            billboard, label = createBillboard(obj, espId, espContainer, color)
+                        else
+                            billboard.Adornee = obj
+                            local label = billboard:FindFirstChild("Label")
+                            if label then
+                                local dist = round((part.Position - RootPart.Position).Magnitude, 1)
+                                label.Text = string.format("Computador • %d studs", dist)
+                                label.TextColor3 = color
+                            end
+                        end
+                        applyHighlight(obj, color)
+                    end
+                end
+            end)
+        else
+            if espConnection then espConnection:Disconnect() end
+        end
+    end
+})
+
+-- ESP FreezePod
+TabMain:AddToggle({
+    Name = "ESP FreezePod",
+    Default = false,
+    Flag = "EspFreezePod",
+    Callback = function(state)
+        _G.SHub.Toggles.EspFreezePod = state
+        local espConnection = _G.SHub.Connections.EspFreezePod
+
+        if state then
+            if espConnection then espConnection:Disconnect() end
+            _G.SHub.Connections.EspFreezePod = RunService.RenderStepped:Connect(function()
+                if not _G.SHub.Toggles.EspFreezePod then
+                    _G.SHub.Connections.EspFreezePod:Disconnect()
+                    _G.SHub.Connections.EspFreezePod = nil
+                    for _, child in pairs(espContainer:GetChildren()) do
+                        if child.Name:find("FreezePod_") then child:Destroy() end
+                    end
+                    return
+                end
+
+                local map = GetCurrentMap()
+                if not map or not RootPart then return end
+
+                for _, obj in pairs(map:GetChildren()) do
+                    if obj.Name == "FreezePod" then
+                        local part = obj:FindFirstChildWhichIsA("BasePart")
+                        if not part then continue end
+
+                        local color = Color3.fromRGB(0, 0, 245)
+
+                        local espId = "FreezePod_" .. obj:GetDebugId()
+                        local billboard = espContainer:FindFirstChild(espId)
+                        if not billboard then
+                            billboard, label = createBillboard(obj, espId, espContainer, color)
+                        else
+                            billboard.Adornee = obj
+                            local label = billboard:FindFirstChild("Label")
+                            if label then
+                                local dist = round((part.Position - RootPart.Position).Magnitude, 1)
+                                label.Text = string.format("FreezePod • %d studs", dist)
+                                label.TextColor3 = color
+                            end
+                        end
+                        applyHighlight(obj, color)
+                    end
+                end
+            end)
+        else
+            if espConnection then espConnection:Disconnect() end
+        end
+    end
+})
+
+-- ABA LOCAL
+TabLocal:AddSection({Name = "Jogador"})
+
+-- Full Bright
+TabLocal:AddToggle({
+    Name = "Full Bright",
+    Default = false,
+    Flag = "FullBright",
+    Callback = function(state)
+        _G.SHub.Toggles.FullBright = state
+        if state then
+            _G.SHub.OriginalLighting = {
+                Brightness = Lighting.Brightness,
+                ClockTime = Lighting.ClockTime,
+                FogEnd = Lighting.FogEnd,
+                GlobalShadows = Lighting.GlobalShadows,
+                Ambient = Lighting.Ambient,
+                OutdoorAmbient = Lighting.OutdoorAmbient
+            }
+            local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+            if atm then _G.SHub.OriginalLighting.AtmosphereDensity = atm.Density end
+
+            local function apply()
+                Lighting.Brightness = 2
+                Lighting.ClockTime = 14
+                Lighting.FogEnd = 100000
+                Lighting.GlobalShadows = false
+                Lighting.Ambient = Color3.new(1, 1, 1)
+                Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+                local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+                if atm then atm.Density = 0 end
+            end
+
+            _G.SHub.Connections.FullBright = RunService.RenderStepped:Connect(apply)
+            apply()
+        else
+            if _G.SHub.Connections.FullBright then
+                _G.SHub.Connections.FullBright:Disconnect()
+                _G.SHub.Connections.FullBright = nil
+            end
+            if _G.SHub.OriginalLighting then
+                for prop, val in pairs(_G.SHub.OriginalLighting) do
+                    if prop == "AtmosphereDensity" then
+                        local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+                        if atm then atm.Density = val end
+                    else
+                        Lighting[prop] = val
                     end
                 end
             end
+        end
+    end
+})
+
+-- Infinito Jump
+TabLocal:AddToggle({
+    Name = "Infinito Jump",
+    Default = false,
+    Flag = "InfJump",
+    Callback = function(state)
+        _G.SHub.Toggles.InfJump = state
+    end
+})
+UserInputService.JumpRequest:Connect(function()
+    if _G.SHub.Toggles.InfJump and Humanoid then
+        Humanoid:ChangeState("Jumping")
+    end
+end)
+
+-- Noclip
+TabLocal:AddToggle({
+    Name = "Noclip",
+    Default = false,
+    Flag = "Noclip",
+    Callback = function(state)
+        _G.SHub.Toggles.Noclip = state
+        local noclipConnection = _G.SHub.Connections.Noclip
+
+        if state then
+            if noclipConnection then noclipConnection:Disconnect() end
+            _G.SHub.Connections.Noclip = RunService.Heartbeat:Connect(function()
+                if not _G.SHub.Toggles.Noclip then
+                    _G.SHub.Connections.Noclip:Disconnect()
+                    _G.SHub.Connections.Noclip = nil
+                    return
+                end
+                if Character then
+                    for _, part in pairs(Character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.CanCollide then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
         else
-            local head = character:FindFirstChild("Head")
-            if head then
-                local weld = Instance.new("Weld")
-                weld.Name = "HeadWeld_" .. accessory.Name
-                weld.Part0 = head
-                weld.Part1 = handle
-                weld.C0 = CFrame.new(0, 0.5, 0)
-                weld.C1 = accessory.AttachmentPoint or CFrame.new(0, 0.5, 0)
-                weld.Parent = head
-            end
-        end
-    end
-end
-
--- ============= FUNÇÕES DE FACE =============
-local function ChangeFace(faceId)
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local head = character:FindFirstChild("Head")
-    if not head then return end
-    
-    local face = head:FindFirstChild("face") or head:FindFirstChild("Face")
-    if not face then
-        face = Instance.new("Decal")
-        face.Name = "face"
-        face.Face = Enum.NormalId.Front
-        face.Parent = head
-    end
-    
-    face.Texture = "rbxassetid://" .. tostring(faceId)
-end
-
--- ============= FUNÇÕES DE KORBLOX =============
-local function ApplyKorblox(side)
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local function ensurePart(partName)
-        local part = character:FindFirstChild(partName)
-        if not part then
-            part = Instance.new("Part")
-            part.Name = partName
-            part.Parent = character
-        end
-        return part
-    end
-    
-    if side == "right" then
-        local rightLowerLeg = ensurePart("RightLowerLeg")
-        rightLowerLeg.MeshId = "rbxassetid://902942093"
-        rightLowerLeg.Transparency = 1
-        rightLowerLeg.Size = Vector3.new(1, 1, 1)
-        
-        local rightUpperLeg = ensurePart("RightUpperLeg")
-        rightUpperLeg.MeshId = "rbxassetid://902942096"
-        rightUpperLeg.TextureID = "rbxassetid://902843398"
-        rightUpperLeg.Transparency = 0
-        
-        local rightFoot = ensurePart("RightFoot")
-        rightFoot.MeshId = "rbxassetid://902942089"
-        rightFoot.Transparency = 1
-        rightFoot.Size = Vector3.new(1, 1, 1)
-        
-    elseif side == "left" then
-        local leftLowerLeg = ensurePart("LeftLowerLeg")
-        leftLowerLeg.MeshId = "rbxassetid://101851582"
-        leftLowerLeg.TextureID = "rbxassetid://101851582"
-        leftLowerLeg.Transparency = 0
-        leftLowerLeg.Size = Vector3.new(1, 1, 1)
-        
-        local leftUpperLeg = ensurePart("LeftUpperLeg")
-        leftUpperLeg.MeshId = "rbxassetid://101851582"
-        leftUpperLeg.TextureID = "rbxassetid://101851582"
-        leftUpperLeg.Transparency = 0
-        
-        local leftFoot = ensurePart("LeftFoot")
-        leftFoot.MeshId = "rbxassetid://101851582"
-        leftFoot.TextureID = "rbxassetid://101851582"
-        leftFoot.Transparency = 0
-        leftFoot.Size = Vector3.new(1, 1, 1)
-        
-        local leftHip = character:FindFirstChild("Left Hip") or character:FindFirstChild("LeftHip")
-        if leftHip and leftHip:IsA("Motor6D") then
-            leftHip.C0 = CFrame.new(-1, 1, 0) * CFrame.Angles(0, math.rad(-90), math.rad(-10))
-        end
-    end
-end
-
-local function RemoveKorblox()
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local rightLowerLeg = character:FindFirstChild("RightLowerLeg")
-    if rightLowerLeg then
-        rightLowerLeg.MeshId = ""
-        rightLowerLeg.TextureID = ""
-        rightLowerLeg.Transparency = 0
-        rightLowerLeg.Size = Vector3.new(1, 1, 1)
-    end
-    
-    local rightUpperLeg = character:FindFirstChild("RightUpperLeg")
-    if rightUpperLeg then
-        rightUpperLeg.MeshId = ""
-        rightUpperLeg.TextureID = ""
-        rightUpperLeg.Transparency = 0
-    end
-    
-    local rightFoot = character:FindFirstChild("RightFoot")
-    if rightFoot then
-        rightFoot.MeshId = ""
-        rightFoot.TextureID = ""
-        rightFoot.Transparency = 0
-        rightFoot.Size = Vector3.new(1, 1, 1)
-    end
-    
-    local leftLowerLeg = character:FindFirstChild("LeftLowerLeg")
-    if leftLowerLeg then
-        leftLowerLeg.MeshId = ""
-        leftLowerLeg.TextureID = ""
-        leftLowerLeg.Transparency = 0
-        leftLowerLeg.Size = Vector3.new(1, 1, 1)
-    end
-    
-    local leftUpperLeg = character:FindFirstChild("LeftUpperLeg")
-    if leftUpperLeg then
-        leftUpperLeg.MeshId = ""
-        leftUpperLeg.TextureID = ""
-        leftUpperLeg.Transparency = 0
-    end
-    
-    local leftFoot = character:FindFirstChild("LeftFoot")
-    if leftFoot then
-        leftFoot.MeshId = ""
-        leftFoot.TextureID = ""
-        leftFoot.Transparency = 0
-        leftFoot.Size = Vector3.new(1, 1, 1)
-    end
-    
-    local leftHip = character:FindFirstChild("Left Hip") or character:FindFirstChild("LeftHip")
-    if leftHip and leftHip:IsA("Motor6D") then
-        leftHip.C0 = CFrame.new(-1, 1, 0) * CFrame.Angles(0, math.rad(-90), 0)
-    end
-    
-    WindUI:Notify({
-        Title = "Korblox",
-        Content = "Korblox removido!",
-        Duration = 3,
-        Image = "success"
-    })
-end
-
--- ============= BANCO DE DADOS DE EMOTES =============
-local Emotes = {
-    { name = "Around Town", id = 3576747102, icon = "rbxthumb://type=Asset&id=3576747102&w=150&h=150", price = 1000, lastupdated = 1663264200, sort = {} },
-    { name = "TWICE TAKEDOWN DANCE 2", id = 85623000473425, icon = "rbxthumb://type=Asset&id=85623000473425&w=150&h=150", price = 100, lastupdated = 1752192000, sort = {} },
-    { name = "Fashionable", id = 3576745472, icon = "rbxthumb://type=Asset&id=3576745472&w=150&h=150", price = 750, lastupdated = 1663281649, sort = {} },
-    { name = "Swish", id = 3821527813, icon = "rbxthumb://type=Asset&id=3821527813&w=150&h=150", price = 750, lastupdated = 1663281651, sort = {} },
-    { name = "Top Rock", id = 3570535774, icon = "rbxthumb://type=Asset&id=3570535774&w=150&h=150", price = 750, lastupdated = 1663281651, sort = {} },
-    { name = "Fancy Feet", id = 3934988903, icon = "rbxthumb://type=Asset&id=3934988903&w=150&h=150", price = 500, lastupdated = 1663281649, sort = {} },
-    { name = "Idol", id = 4102317848, icon = "rbxthumb://type=Asset&id=4102317848&w=150&h=150", price = 500, lastupdated = 1663281650, sort = {} },
-    { name = "Sneaky", id = 3576754235, icon = "rbxthumb://type=Asset&id=3576754235&w=150&h=150", price = 500, lastupdated = 1663281651, sort = {} },
-    { name = "Elton John - Piano Jump", id = 11453096488, icon = "rbxthumb://type=Asset&id=11453096488&w=150&h=150", price = 500, lastupdated = 1668382206, sort = {} },
-    { name = "Cartwheel - George Ezra", id = 10370929905, icon = "rbxthumb://type=Asset&id=10370929905&w=150&h=150", price = 450, lastupdated = 1659650848, sort = {} },
-    { name = "Super Charge", id = 10478368365, icon = "rbxthumb://type=Asset&id=10478368365&w=150&h=150", price = 450, lastupdated = 1659649594, sort = {} },
-    { name = "Rise Above - The Chainsmokers", id = 13071993910, icon = "rbxthumb://type=Asset&id=13071993910&w=150&h=150", price = 400, lastupdated = 1681411386, sort = {} },
-    { name = "Elton John - Elevate", id = 11394056822, icon = "rbxthumb://type=Asset&id=11394056822&w=150&h=150", price = 400, lastupdated = 1667432393, sort = {} },
-    { name = "Sturdy Dance - Ice Spice", id = 17746270218, icon = "rbxthumb://type=Asset&id=17746270218&w=150&h=150", price = 300, lastupdated = 1717619314, sort = {} },
-    { name = "YUNGBLUD – HIGH KICK", id = 14022978026, icon = "rbxthumb://type=Asset&id=14022978026&w=150&h=150", price = 300, lastupdated = 1691769382, sort = {} },
-    { name = "Robot", id = 3576721660, icon = "rbxthumb://type=Asset&id=3576721660&w=150&h=150", price = 250, lastupdated = 1663281650, sort = {} },
-    { name = "Louder", id = 3576751796, icon = "rbxthumb://type=Asset&id=3576751796&w=150&h=150", price = 250, lastupdated = 1663281650, sort = {} },
-    { name = "Twirl", id = 3716633898, icon = "rbxthumb://type=Asset&id=3716633898&w=150&h=150", price = 250, lastupdated = 1663281651, sort = {} },
-    { name = "Bodybuilder", id = 3994130516, icon = "rbxthumb://type=Asset&id=3994130516&w=150&h=150", price = 200, lastupdated = 1663281649, sort = {} },
-    { name = "NBA Monster Dunk", id = 117511481049460, icon = "rbxthumb://type=Asset&id=117511481049460&w=150&h=150", price = 200, lastupdated = 1739396302, sort = {} },
-    { name = "Jacks", id = 3570649048, icon = "rbxthumb://type=Asset&id=3570649048&w=150&h=150", price = 200, lastupdated = 1663281650, sort = {} },
-    { name = "Shuffle", id = 4391208058, icon = "rbxthumb://type=Asset&id=4391208058&w=150&h=150", price = 200, lastupdated = 1663281651, sort = {} },
-    { name = "Elton John - Still Standing", id = 11435177473, icon = "rbxthumb://type=Asset&id=11435177473&w=150&h=150", price = 200, lastupdated = 1667779047, sort = {} },
-    { name = "Elton John - Cat Man", id = 11435175895, icon = "rbxthumb://type=Asset&id=11435175895&w=150&h=150", price = 200, lastupdated = 1667535727, sort = {} },
-    { name = "Shrek Roar", id = 18524331128, icon = "rbxthumb://type=Asset&id=18524331128&w=150&h=150", price = 200, lastupdated = 1721176055, sort = {} },
-    { name = "Dorky Dance", id = 4212499637, icon = "rbxthumb://type=Asset&id=4212499637&w=150&h=150", price = 200, lastupdated = 1663281649, sort = {} },
-    { name = "HOLIDAY Dance - Lil Nas X (LNX)", id = 5938396308, icon = "rbxthumb://type=Asset&id=5938396308&w=150&h=150", price = 190, lastupdated = 1663281650, sort = {} },
-    { name = "Old Town Road Dance - Lil Nas X (LNX)", id = 5938394742, icon = "rbxthumb://type=Asset&id=5938394742&w=150&h=150", price = 190, lastupdated = 1663281650, sort = {} },
-    { name = "Panini Dance - Lil Nas X (LNX)", id = 5915781665, icon = "rbxthumb://type=Asset&id=5915781665&w=150&h=150", price = 190, lastupdated = 1663281650, sort = {} },
-    { name = "Rodeo Dance - Lil Nas X (LNX)", id = 5938397555, icon = "rbxthumb://type=Asset&id=5938397555&w=150&h=150", price = 190, lastupdated = 1663281651, sort = {} },
-    { name = "Drum Master - Royal Blood", id = 6531538868, icon = "rbxthumb://type=Asset&id=6531538868&w=150&h=150", price = 190, lastupdated = 1663281649, sort = {} },
-    { name = "It Ain't My Fault - Zara Larsson", id = 6797948622, icon = "rbxthumb://type=Asset&id=6797948622&w=150&h=150", price = 190, lastupdated = 1663281650, sort = {} },
-    { name = "Flex Walk", id = 15506506103, icon = "rbxthumb://type=Asset&id=15506506103&w=150&h=150", price = 175, lastupdated = 1705451683, sort = {} },
-    { name = "Dizzy", id = 3934986896, icon = "rbxthumb://type=Asset&id=3934986896&w=150&h=150", price = 175, lastupdated = 1663281649, sort = {} },
-    { name = "Uprise - Tommy Hilfiger", id = 10275057230, icon = "rbxthumb://type=Asset&id=10275057230&w=150&h=150", price = 170, lastupdated = 1660240736, sort = {} },
-    { name = "Tommy - Archer", id = 13823339506, icon = "rbxthumb://type=Asset&id=13823339506&w=150&h=150", price = 170, lastupdated = 1687980934, sort = {} },
-    { name = "Mean Mug - Tommy Hilfiger", id = 10214415687, icon = "rbxthumb://type=Asset&id=10214415687&w=150&h=150", price = 170, lastupdated = 1660240753, sort = {} },
-    { name = "Rock Star - Royal Blood", id = 6533100850, icon = "rbxthumb://type=Asset&id=6533100850&w=150&h=150", price = 170, lastupdated = 1663281651, sort = {} },
-    { name = "Floor Rock Freeze - Tommy Hilfiger", id = 10214411646, icon = "rbxthumb://type=Asset&id=10214411646&w=150&h=150", price = 170, lastupdated = 1658271615, sort = {} },
-    { name = "Saturday Dance - Twenty One Pilots", id = 7422833723, icon = "rbxthumb://type=Asset&id=7422833723&w=150&h=150", price = 170, lastupdated = 1663281651, sort = {} },
-    { name = "V Pose - Tommy Hilfiger", id = 10214418283, icon = "rbxthumb://type=Asset&id=10214418283&w=150&h=150", price = 170, lastupdated = 1660240743, sort = {} },
-    { name = "Boxing Punch - KSI", id = 7202896732, icon = "rbxthumb://type=Asset&id=7202896732&w=150&h=150", price = 170, lastupdated = 1663281649, sort = {} },
-    { name = "Drum Solo - Royal Blood", id = 6532844183, icon = "rbxthumb://type=Asset&id=6532844183&w=150&h=150", price = 170, lastupdated = 1663281649, sort = {} },
-    { name = "Frosty Flair - Tommy Hilfiger", id = 10214406616, icon = "rbxthumb://type=Asset&id=10214406616&w=150&h=150", price = 170, lastupdated = 1658271594, sort = {} },
-    { name = "Hips Poppin' - Zara Larsson", id = 6797919579, icon = "rbxthumb://type=Asset&id=6797919579&w=150&h=150", price = 170, lastupdated = 1663281650, sort = {} },
-    { name = "Drummer Moves - Twenty One Pilots", id = 7422838770, icon = "rbxthumb://type=Asset&id=7422838770&w=150&h=150", price = 160, lastupdated = 1663281649, sort = {} },
-    { name = "On The Outside - Twenty One Pilots", id = 7422841700, icon = "rbxthumb://type=Asset&id=7422841700&w=150&h=150", price = 160, lastupdated = 1663281650, sort = {} },
-    { name = "Thanos Happy Jump - Squid Game", id = 82217023310738, icon = "rbxthumb://type=Asset&id=82217023310738&w=150&h=150", price = 150, lastupdated = 1750314239, sort = {} },
-    { name = "Block Partier", id = 6865011755, icon = "rbxthumb://type=Asset&id=6865011755&w=150&h=150", price = 150, lastupdated = 1663281649, sort = {} },
-    { name = "Up and Down - Twenty One Pilots", id = 7422843994, icon = "rbxthumb://type=Asset&id=7422843994&w=150&h=150", price = 150, lastupdated = 1663281651, sort = {} },
-    { name = "Ay-Yo Dance Move - NCT 127", id = 12804173616, icon = "rbxthumb://type=Asset&id=12804173616&w=150&h=150", price = 150, lastupdated = 1679554914, sort = {} },
-    { name = "Young-hee Head Spin - Squid Game", id = 134615135651900, icon = "rbxthumb://type=Asset&id=134615135651900&w=150&h=150", price = 150, lastupdated = 1750314256, sort = {} },
-    { name = "T", id = 3576719440, icon = "rbxthumb://type=Asset&id=3576719440&w=150&h=150", price = 150, lastupdated = 1663281651, sort = {} },
-    { name = "Air Dance", id = 4646302011, icon = "rbxthumb://type=Asset&id=4646302011&w=150&h=150", price = 150, lastupdated = 1663264200, sort = {} },
-    { name = "TMNT Dance", id = 18665886405, icon = "rbxthumb://type=Asset&id=18665886405&w=150&h=150", price = 150, lastupdated = 1722010678, sort = {} },
-    { name = "Take Me Under - Zara Larsson", id = 6797938823, icon = "rbxthumb://type=Asset&id=6797938823&w=150&h=150", price = 150, lastupdated = 1663281651, sort = {} },
-    { name = "Sticker Dance Move - NCT 127", id = 12259885838, icon = "rbxthumb://type=Asset&id=12259885838&w=150&h=150", price = 150, lastupdated = 1675067049, sort = {} },
-    { name = "Line Dance", id = 4049646104, icon = "rbxthumb://type=Asset&id=4049646104&w=150&h=150", price = 150, lastupdated = 1663281650, sort = {} },
-    { name = "NBA WNBA Fadeaway", id = 18526373545, icon = "rbxthumb://type=Asset&id=18526373545&w=150&h=150", price = 150, lastupdated = 1721396854, sort = {} },
-    { name = "SpongeBob Imaginaaation 🌈", id = 18443268949, icon = "rbxthumb://type=Asset&id=18443268949&w=150&h=150", price = 150, lastupdated = 1720822244, sort = {} },
-    { name = "Chill Vibes - George Ezra", id = 10370918044, icon = "rbxthumb://type=Asset&id=10370918044&w=150&h=150", price = 150, lastupdated = 1659650823, sort = {} },
-    { name = "Wake Up Call - KSI", id = 7202900159, icon = "rbxthumb://type=Asset&id=7202900159&w=150&h=150", price = 150, lastupdated = 1663281651, sort = {} },
-    { name = "Kick It Dance Move - NCT 127", id = 12259888240, icon = "rbxthumb://type=Asset&id=12259888240&w=150&h=150", price = 150, lastupdated = 1674794102, sort = {} },
-    { name = "The Weeknd Starboy Strut", id = 130245358716273, icon = "rbxthumb://type=Asset&id=130245358716273&w=150&h=150", price = 150, lastupdated = 1747429898, sort = {} },
-    { name = "2 Baddies Dance Move - NCT 127", id = 12259890638, icon = "rbxthumb://type=Asset&id=12259890638&w=150&h=150", price = 150, lastupdated = 1674793873, sort = {} },
-    { name = "Rock Guitar - Royal Blood", id = 6532155086, icon = "rbxthumb://type=Asset&id=6532155086&w=150&h=150", price = 150, lastupdated = 1663281650, sort = {} },
-    { name = "Show Dem Wrists - KSI", id = 7202898984, icon = "rbxthumb://type=Asset&id=7202898984&w=150&h=150", price = 140, lastupdated = 1663281651, sort = {} },
-    { name = "Dancin' Shoes - Twenty One Pilots", id = 7405123844, icon = "rbxthumb://type=Asset&id=7405123844&w=150&h=150", price = 140, lastupdated = 1663281649, sort = {} },
-    { name = "Arm Twist", id = 9710992846, icon = "rbxthumb://type=Asset&id=9710992846&w=150&h=150", price = 140, lastupdated = 1691019410, sort = {} },
-    { name = "AOK - Tai Verdes", id = 7942960760, icon = "rbxthumb://type=Asset&id=7942960760&w=150&h=150", price = 140, lastupdated = 1663281649, sort = {} },
-    { name = "M3GAN's Dance", id = 127271798262177, icon = "rbxthumb://type=Asset&id=127271798262177&w=150&h=150", price = 140, lastupdated = 1749963148, sort = {} },
-    { name = "High Hands", id = 9710994651, icon = "rbxthumb://type=Asset&id=9710994651&w=150&h=150", price = 140, lastupdated = 1691019393, sort = {} },
-    { name = "Cobra Arms - Tai Verdes", id = 7942964447, icon = "rbxthumb://type=Asset&id=7942964447&w=150&h=150", price = 130, lastupdated = 1663281649, sort = {} },
-    { name = "Lasso Turn - Tai Verdes", id = 7942972744, icon = "rbxthumb://type=Asset&id=7942972744&w=150&h=150", price = 130, lastupdated = 1663281650, sort = {} },
-    { name = "Beauty Touchdown", id = 16303091119, icon = "rbxthumb://type=Asset&id=16303091119&w=150&h=150", price = 125, lastupdated = 1709320484, sort = {} },
-    { name = "Sidekicks - George Ezra", id = 10370922566, icon = "rbxthumb://type=Asset&id=10370922566&w=150&h=150", price = 125, lastupdated = 1659650831, sort = {} },
-    { name = "Boom Boom Clap - George Ezra", id = 10370934040, icon = "rbxthumb://type=Asset&id=10370934040&w=150&h=150", price = 125, lastupdated = 1659650857, sort = {} },
-    { name = "DearALICE - Ariana", id = 133765015173412, icon = "rbxthumb://type=Asset&id=133765015173412&w=150&h=150", price = 125, lastupdated = 1748015544, sort = {} },
-    { name = "Chappell Roan HOT TO GO!", id = 79312439851071, icon = "rbxthumb://type=Asset&id=79312439851071&w=150&h=150", price = 125, lastupdated = 1728072364, sort = {} },
-    { name = "Bone Chillin' Bop", id = 15123050663, icon = "rbxthumb://type=Asset&id=15123050663&w=150&h=150", price = 125, lastupdated = 1698882605, sort = {} },
-    { name = "Power Blast", id = 4849497510, icon = "rbxthumb://type=Asset&id=4849497510&w=150&h=150", price = 120, lastupdated = 1663281650, sort = {} },
-    { name = "Flowing Breeze", id = 7466047578, icon = "rbxthumb://type=Asset&id=7466047578&w=150&h=150", price = 110, lastupdated = 1663281650, sort = {} },
-    { name = "Swan Dance", id = 7466048475, icon = "rbxthumb://type=Asset&id=7466048475&w=150&h=150", price = 110, lastupdated = 1663281651, sort = {} },
-    { name = "Quiet Waves", id = 7466046574, icon = "rbxthumb://type=Asset&id=7466046574&w=150&h=150", price = 110, lastupdated = 1663281650, sort = {} },
-    { name = "Rolling Stones Guitar Strum", id = 18148839527, icon = "rbxthumb://type=Asset&id=18148839527&w=150&h=150", price = 100, lastupdated = 1718999383, sort = {} },
-    { name = "Break Dance", id = 5915773992, icon = "rbxthumb://type=Asset&id=5915773992&w=150&h=150", price = 100, lastupdated = 1663281649, sort = {} },
-    { name = "KATSEYE - Touch", id = 139021427684680, icon = "rbxthumb://type=Asset&id=139021427684680&w=150&h=150", price = 100, lastupdated = 1732569484, sort = {} },
-    { name = "Zombie", id = 4212496830, icon = "rbxthumb://type=Asset&id=4212496830&w=150&h=150", price = 100, lastupdated = 1663281651, sort = {} },
-    { name = "Olivia Rodrigo Head Bop", id = 15554010118, icon = "rbxthumb://type=Asset&id=15554010118&w=150&h=150", price = 100, lastupdated = 1701888912, sort = {} },
-    { name = "Rasputin – Boney M.", id = 133477296392756, icon = "rbxthumb://type=Asset&id=133477296392756&w=150&h=150", price = 100, lastupdated = 1750102356, sort = {} },
-    { name = "Tommy K-Pop Mic Drop", id = 14024722653, icon = "rbxthumb://type=Asset&id=14024722653&w=150&h=150", price = 100, lastupdated = 1691505558, sort = {} },
-    { name = "TWICE Feel Special", id = 14900153406, icon = "rbxthumb://type=Asset&id=14900153406&w=150&h=150", price = 100, lastupdated = 1695849104, sort = {} },
-    { name = "Olivia Rodrigo good 4 u", id = 15554013003, icon = "rbxthumb://type=Asset&id=15554013003&w=150&h=150", price = 100, lastupdated = 1701899524, sort = {} },
-    { name = "Olivia Rodrigo Fall Back to Float", id = 15554016057, icon = "rbxthumb://type=Asset&id=15554016057&w=150&h=150", price = 100, lastupdated = 1704909517, sort = {} },
-    { name = "Air Guitar", id = 15506499986, icon = "rbxthumb://type=Asset&id=15506499986&w=150&h=150", price = 100, lastupdated = 1705451692, sort = {} },
-    { name = "Fashion Klossette - Runway my way", id = 126683684984862, icon = "rbxthumb://type=Asset&id=126683684984862&w=150&h=150", price = 100, lastupdated = 1725032194, sort = {} },
-    { name = "Elton John - Heart Skip", id = 11309263077, icon = "rbxthumb://type=Asset&id=11309263077&w=150&h=150", price = 100, lastupdated = 1667432377, sort = {} },
-    { name = "Baby Dance", id = 4272484885, icon = "rbxthumb://type=Asset&id=4272484885&w=150&h=150", price = 100, lastupdated = 1663264200, sort = {} },
-    { name = "Cha Cha", id = 6865013133, icon = "rbxthumb://type=Asset&id=6865013133&w=150&h=150", price = 100, lastupdated = 1625675362, sort = {} },
-    { name = "Dolphin Dance", id = 5938365243, icon = "rbxthumb://type=Asset&id=5938365243&w=150&h=150", price = 100, lastupdated = 1663281649, sort = {} },
-    { name = "Elton John - Rock Out", id = 11753545334, icon = "rbxthumb://type=Asset&id=11753545334&w=150&h=150", price = 100, lastupdated = 1670628204, sort = {} },
-    { name = "ALTÉGO - Couldn’t Care Less", id = 92859581691366, icon = "rbxthumb://type=Asset&id=92859581691366&w=150&h=150", price = 100, lastupdated = 1726765025, sort = {} },
-    { name = "Fashion Roadkill", id = 73683655527605, icon = "rbxthumb://type=Asset&id=73683655527605&w=150&h=150", price = 100, lastupdated = 1727716460, sort = {} },
-    { name = "Paris Hilton Sanasa", id = 16126526506, icon = "rbxthumb://type=Asset&id=16126526506&w=150&h=150", price = 100, lastupdated = 1706312634, sort = {} },
-    { name = "TWICE I GOT YOU part 1", id = 16215060261, icon = "rbxthumb://type=Asset&id=16215060261&w=150&h=150", price = 100, lastupdated = 1708450164, sort = {} },
-    { name = "The Zabb", id = 71389516735424, icon = "rbxthumb://type=Asset&id=71389516735424&w=150&h=150", price = 100, lastupdated = 1725033197, sort = {} },
-    { name = "Y", id = 4391211308, icon = "rbxthumb://type=Asset&id=4391211308&w=150&h=150", price = 100, lastupdated = 1663281651, sort = {} },
-    { name = "Wanna play?", id = 16646438742, icon = "rbxthumb://type=Asset&id=16646438742&w=150&h=150", price = 100, lastupdated = 1709741603, sort = {} },
-    { name = "TWICE I GOT YOU part 2", id = 16256253954, icon = "rbxthumb://type=Asset&id=16256253954&w=150&h=150", price = 100, lastupdated = 1708450173, sort = {} },
-    { name = "Nicki Minaj Starships", id = 15571540519, icon = "rbxthumb://type=Asset&id=15571540519&w=150&h=150", price = 100, lastupdated = 1704780058, sort = {} },
-    { name = "Mean Girls Dance Break", id = 15963348695, icon = "rbxthumb://type=Asset&id=15963348695&w=150&h=150", price = 100, lastupdated = 1705126454, sort = {} },
-    { name = "TWICE Takedown", id = 94796833553521, icon = "rbxthumb://type=Asset&id=94796833553521&w=150&h=150", price = 100, lastupdated = 1750434081, sort = {} },
-    { name = "Samba", id = 6869813008, icon = "rbxthumb://type=Asset&id=6869813008&w=150&h=150", price = 100, lastupdated = 1663281651, sort = {} },
-    { name = "Rock Out - Bebe Rexha", id = 18225077553, icon = "rbxthumb://type=Asset&id=18225077553&w=150&h=150", price = 100, lastupdated = 1719448619, sort = {} },
-    { name = "TWICE LIKEY", id = 14900151704, icon = "rbxthumb://type=Asset&id=14900151704&w=150&h=150", price = 100, lastupdated = 1695849068, sort = {} },
-    { name = "Sol de Janeiro - Samba", id = 16276506814, icon = "rbxthumb://type=Asset&id=16276506814&w=150&h=150", price = 100, lastupdated = 1707323755, sort = {} },
-    { name = "The Weeknd Opening Night", id = 105098895743105, icon = "rbxthumb://type=Asset&id=105098895743105&w=150&h=150", price = 100, lastupdated = 1747430460, sort = {} },
-    { name = "Paris Hilton - Sliving For The Groove", id = 15392927897, icon = "rbxthumb://type=Asset&id=15392927897&w=150&h=150", price = 100, lastupdated = 1700334418, sort = {} },
-    { name = "Paris Hilton - Checking My Angles", id = 15392937495, icon = "rbxthumb://type=Asset&id=15392937495&w=150&h=150", price = 100, lastupdated = 1700334434, sort = {} },
-    { name = "Nicki Minaj Boom Boom Boom", id = 15571538346, icon = "rbxthumb://type=Asset&id=15571538346&w=150&h=150", price = 100, lastupdated = 1704779662, sort = {} },
-    { name = "Stray Kids Walkin On Water", id = 100773414188482, icon = "rbxthumb://type=Asset&id=100773414188482&w=150&h=150", price = 100, lastupdated = 1738351370, sort = {} },
-    { name = "Team USA Breaking Emote", id = 18526338976, icon = "rbxthumb://type=Asset&id=18526338976&w=150&h=150", price = 100, lastupdated = 1721666622, sort = {} },
-    { name = "Side to Side", id = 3762641826, icon = "rbxthumb://type=Asset&id=3762641826&w=150&h=150", price = 100, lastupdated = 1663281651, sort = {} },
-    { name = "Skibidi Toilet - Titan Speakerman Laser Spin", id = 103102322875221, icon = "rbxthumb://type=Asset&id=103102322875221&w=150&h=150", price = 100, lastupdated = 1727890994, sort = {} },
-    { name = "Paris Hilton - Iconic IT-Grrrl", id = 15392932768, icon = "rbxthumb://type=Asset&id=15392932768&w=150&h=150", price = 100, lastupdated = 1700334426, sort = {} },
-    { name = "Dave's Spin Move - Glass Animals", id = 16276501655, icon = "rbxthumb://type=Asset&id=16276501655&w=150&h=150", price = 95, lastupdated = 1707321025, sort = {} },
-    { name = "HUGO Let's Drive!", id = 17360720445, icon = "rbxthumb://type=Asset&id=17360720445&w=150&h=150", price = 95, lastupdated = 1721145133, sort = {} },
-    { name = "Fast Hands", id = 4272351660, icon = "rbxthumb://type=Asset&id=4272351660&w=150&h=150", price = 80, lastupdated = 1663281649, sort = {} },
-    { name = "Tree", id = 4049634387, icon = "rbxthumb://type=Asset&id=4049634387&w=150&h=150", price = 80, lastupdated = 1663281651, sort = {} },
-    { name = "Godlike", id = 3823158750, icon = "rbxthumb://type=Asset&id=3823158750&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Keeping Time", id = 4646306072, icon = "rbxthumb://type=Asset&id=4646306072&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Elton John - Heart Shuffle", id = 17748346932, icon = "rbxthumb://type=Asset&id=17748346932&w=150&h=150", price = 80, lastupdated = 1720191180, sort = {} },
-    { name = "Tantrum", id = 5104374556, icon = "rbxthumb://type=Asset&id=5104374556&w=150&h=150", price = 80, lastupdated = 1663281651, sort = {} },
-    { name = "Rock On", id = 5915782672, icon = "rbxthumb://type=Asset&id=5915782672&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Hero Landing", id = 5104377791, icon = "rbxthumb://type=Asset&id=5104377791&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Fishing", id = 3994129128, icon = "rbxthumb://type=Asset&id=3994129128&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Floss Dance", id = 5917570207, icon = "rbxthumb://type=Asset&id=5917570207&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Get Out", id = 3934984583, icon = "rbxthumb://type=Asset&id=3934984583&w=150&h=150", price = 80, lastupdated = 1663281650, sort = {} },
-    { name = "Victory Dance", id = 15506503658, icon = "rbxthumb://type=Asset&id=15506503658&w=150&h=150", price = 75, lastupdated = 1705451709, sort = {} },
-    { name = "d4vd - Backflip", id = 15694504637, icon = "rbxthumb://type=Asset&id=15694504637&w=150&h=150", price = 50, lastupdated = 1703220450, sort = {} },
-    { name = "GloRilla - \"Tomorrow\" Dance", id = 15689315657, icon = "rbxthumb://type=Asset&id=15689315657&w=150&h=150", price = 50, lastupdated = 1703220424, sort = {} },
-    { name = "Monkey", id = 3716636630, icon = "rbxthumb://type=Asset&id=3716636630&w=150&h=150", price = 50, lastupdated = 1663281650, sort = {} },
-    { name = "Imagine Dragons - “Bones” Dance", id = 15689314578, icon = "rbxthumb://type=Asset&id=15689314578&w=150&h=150", price = 50, lastupdated = 1703220437, sort = {} },
-    { name = "Greatest", id = 3762654854, icon = "rbxthumb://type=Asset&id=3762654854&w=150&h=150", price = 50, lastupdated = 1663281650, sort = {} },
-    { name = "Jawny - Stomp", id = 16392120020, icon = "rbxthumb://type=Asset&id=16392120020&w=150&h=150", price = 50, lastupdated = 1708707354, sort = {} },
-    { name = "Jumping Wave", id = 4940602656, icon = "rbxthumb://type=Asset&id=4940602656&w=150&h=150", price = 50, lastupdated = 1663281650, sort = {} },
-    { name = "HIPMOTION - Amaarae", id = 16572756230, icon = "rbxthumb://type=Asset&id=16572756230&w=150&h=150", price = 50, lastupdated = 1709321680, sort = {} },
-    { name = "Haha", id = 4102315500, icon = "rbxthumb://type=Asset&id=4102315500&w=150&h=150", price = 50, lastupdated = 1663281650, sort = {} },
-    { name = "Agree", id = 4849487550, icon = "rbxthumb://type=Asset&id=4849487550&w=150&h=150", price = 50, lastupdated = 1663264200, sort = {} },
-    { name = "Mae Stephens - Piano Hands", id = 16553249658, icon = "rbxthumb://type=Asset&id=16553249658&w=150&h=150", price = 50, lastupdated = 1713462132, sort = {} },
-    { name = "Mini Kong", id = 17000058939, icon = "rbxthumb://type=Asset&id=17000058939&w=150&h=150", price = 50, lastupdated = 1712176275, sort = {} },
-    { name = "Mae Stephens – Arm Wave", id = 16584496781, icon = "rbxthumb://type=Asset&id=16584496781&w=150&h=150", price = 50, lastupdated = 1713462122, sort = {} },
-    { name = "Festive Dance", id = 15679955281, icon = "rbxthumb://type=Asset&id=15679955281&w=150&h=150", price = 50, lastupdated = 1703018450, sort = {} },
-    { name = "Jumping Cheer", id = 5895009708, icon = "rbxthumb://type=Asset&id=5895009708&w=150&h=150", price = 50, lastupdated = 1604988014, sort = {} },
-    { name = "Sleep", id = 4689362868, icon = "rbxthumb://type=Asset&id=4689362868&w=150&h=150", price = 50, lastupdated = 1663281651, sort = {} },
-    { name = "ericdoa - dance", id = 15698510244, icon = "rbxthumb://type=Asset&id=15698510244&w=150&h=150", price = 50, lastupdated = 1703220462, sort = {} },
-    { name = "Disagree", id = 4849495710, icon = "rbxthumb://type=Asset&id=4849495710&w=150&h=150", price = 50, lastupdated = 1663281649, sort = {} },
-    { name = "Happy", id = 4849499887, icon = "rbxthumb://type=Asset&id=4849499887&w=150&h=150", price = 50, lastupdated = 1663281650, sort = {} },
-    { name = "Bored", id = 5230661597, icon = "rbxthumb://type=Asset&id=5230661597&w=150&h=150", price = 50, lastupdated = 1663281649, sort = {} },
-    { name = "High Wave", id = 5915776835, icon = "rbxthumb://type=Asset&id=5915776835&w=150&h=150", price = 50, lastupdated = 1663281650, sort = {} },
-    { name = "Alo Yoga Pose - Warrior II", id = 12507106431, icon = "rbxthumb://type=Asset&id=12507106431&w=150&h=150", price = 50, lastupdated = 1677711229, sort = {} },
-    { name = "Cower", id = 4940597758, icon = "rbxthumb://type=Asset&id=4940597758&w=150&h=150", price = 50, lastupdated = 1591404331, sort = {} },
-    { name = "Wisp - air guitar", id = 17370797454, icon = "rbxthumb://type=Asset&id=17370797454&w=150&h=150", price = 50, lastupdated = 1714753031, sort = {} },
-    { name = "Alo Yoga Pose - Triangle", id = 12507120275, icon = "rbxthumb://type=Asset&id=12507120275&w=150&h=150", price = 50, lastupdated = 1677711156, sort = {} },
-    { name = "Cuco - Levitate", id = 15698511500, icon = "rbxthumb://type=Asset&id=15698511500&w=150&h=150", price = 50, lastupdated = 1708707329, sort = {} },
-    { name = "Rock n Roll", id = 15506496093, icon = "rbxthumb://type=Asset&id=15506496093&w=150&h=150", price = 50, lastupdated = 1705451701, sort = {} },
-    { name = "Shy", id = 3576717965, icon = "rbxthumb://type=Asset&id=3576717965&w=150&h=150", price = 50, lastupdated = 1663281651, sort = {} },
-    { name = "Alo Yoga Pose - Lotus Position", id = 12507097350, icon = "rbxthumb://type=Asset&id=12507097350&w=150&h=150", price = 50, lastupdated = 1677711092, sort = {} },
-    { name = "Curtsy", id = 4646306583, icon = "rbxthumb://type=Asset&id=4646306583&w=150&h=150", price = 50, lastupdated = 1663281649, sort = {} },
-    { name = "Celebrate", id = 3994127840, icon = "rbxthumb://type=Asset&id=3994127840&w=150&h=150", price = 50, lastupdated = 1663281649, sort = {} },
-    { name = "Yungblud Happier Jump", id = 15610015346, icon = "rbxthumb://type=Asset&id=15610015346&w=150&h=150", price = 50, lastupdated = 1702326238, sort = {} },
-    { name = "Baby Queen - Face Frame", id = 14353421343, icon = "rbxthumb://type=Asset&id=14353421343&w=150&h=150", price = 50, lastupdated = 1692371043, sort = {} },
-    { name = "Confused", id = 4940592718, icon = "rbxthumb://type=Asset&id=4940592718&w=150&h=150", price = 50, lastupdated = 1590791657, sort = {} },
-    { name = "Beckon", id = 5230615437, icon = "rbxthumb://type=Asset&id=5230615437&w=150&h=150", price = 50, lastupdated = 1663281649, sort = {} },
-    { name = "Secret Handshake Dance", id = 120642514156293, icon = "rbxthumb://type=Asset&id=120642514156293&w=150&h=150", price = 50, lastupdated = 1733254849, sort = {} },
-    { name = "Baby Queen - Air Guitar & Knee Slide", id = 14353417553, icon = "rbxthumb://type=Asset&id=14353417553&w=150&h=150", price = 50, lastupdated = 1692371054, sort = {} },
-    { name = "Baby Queen - Bouncy Twirl", id = 14353423348, icon = "rbxthumb://type=Asset&id=14353423348&w=150&h=150", price = 50, lastupdated = 1692371037, sort = {} },
-    { name = "Baby Queen - Strut", id = 14353425085, icon = "rbxthumb://type=Asset&id=14353425085&w=150&h=150", price = 50, lastupdated = 1692371026, sort = {} },
-    { name = "Baby Queen - Dramatic Bow", id = 14353419229, icon = "rbxthumb://type=Asset&id=14353419229&w=150&h=150", price = 50, lastupdated = 1692371048, sort = {} },
-    { name = "Sad", id = 4849502101, icon = "rbxthumb://type=Asset&id=4849502101&w=150&h=150", price = 50, lastupdated = 1663281651, sort = {} },
-    { name = "Robot M3GAN", id = 90569436057900, icon = "rbxthumb://type=Asset&id=90569436057900&w=150&h=150", price = 1, lastupdated = 1749316525, sort = {} },
-    { name = "Nicki Minaj Anaconda", id = 15571539403, icon = "rbxthumb://type=Asset&id=15571539403&w=150&h=150", price = 0, lastupdated = 1702052956, sort = {} },
-    { name = "Cha-Cha", id = 3696764866, icon = "rbxthumb://type=Asset&id=3696764866&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "BURBERRY LOLA ATTITUDE - BLOOM", id = 10147919199, icon = "rbxthumb://type=Asset&id=10147919199&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "Skadoosh Emote - Kung Fu Panda 4", id = 16371235025, icon = "rbxthumb://type=Asset&id=16371235025&w=150&h=150", price = 0, lastupdated = 1708496660, sort = {} },
-    { name = "Chicken Dance", id = 4849493309, icon = "rbxthumb://type=Asset&id=4849493309&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "BLACKPINK Don't know what to do", id = 18855609889, icon = "rbxthumb://type=Asset&id=18855609889&w=150&h=150", price = 0, lastupdated = 1723090163, sort = {} },
-    { name = "Man City Scorpion Kick", id = 13694139364, icon = "rbxthumb://type=Asset&id=13694139364&w=150&h=150", price = 0, lastupdated = 1688061827, sort = {} },
-    { name = "Gashina - SUNMI", id = 9528294735, icon = "rbxthumb://type=Asset&id=9528294735&w=150&h=150", price = 0, lastupdated = 1651539455, sort = {} },
-    { name = "Fashion Spin", id = 130046968468383, icon = "rbxthumb://type=Asset&id=130046968468383&w=150&h=150", price = 0, lastupdated = 1732653968, sort = {} },
-    { name = "Country Line Dance - Lil Nas X (LNX)", id = 5915780563, icon = "rbxthumb://type=Asset&id=5915780563&w=150&h=150", price = 0, lastupdated = 1605561299, sort = {} },
-    { name = "Sandwich Dance", id = 4390121879, icon = "rbxthumb://type=Asset&id=4390121879&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "BLACKPINK LISA Money", id = 15679957363, icon = "rbxthumb://type=Asset&id=15679957363&w=150&h=150", price = 0, lastupdated = 1703004397, sort = {} },
-    { name = "Nicki Minaj That's That Super Bass Emote", id = 15571536896, icon = "rbxthumb://type=Asset&id=15571536896&w=150&h=150", price = 0, lastupdated = 1702052899, sort = {} },
-    { name = "Salute", id = 3360689775, icon = "rbxthumb://type=Asset&id=3360689775&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "Olympic Dismount", id = 18666650035, icon = "rbxthumb://type=Asset&id=18666650035&w=150&h=150", price = 0, lastupdated = 1722014387, sort = {} },
-    { name = "MANIAC - Stray Kids", id = 11309309359, icon = "rbxthumb://type=Asset&id=11309309359&w=150&h=150", price = 0, lastupdated = 1668458448, sort = {} },
-    { name = "BLACKPINK JISOO Flower", id = 15439454888, icon = "rbxthumb://type=Asset&id=15439454888&w=150&h=150", price = 0, lastupdated = 1701124495, sort = {} },
-    { name = "Man City Bicycle Kick", id = 13422286833, icon = "rbxthumb://type=Asset&id=13422286833&w=150&h=150", price = 0, lastupdated = 1684429651, sort = {} },
-    { name = "Man City Backflip", id = 13694140956, icon = "rbxthumb://type=Asset&id=13694140956&w=150&h=150", price = 0, lastupdated = 1688061856, sort = {} },
-    { name = "BLACKPINK Pink Venom - Straight to Ya Dome", id = 14548711723, icon = "rbxthumb://type=Asset&id=14548711723&w=150&h=150", price = 0, lastupdated = 1732579764, sort = {} },
-    { name = "BLACKPINK Pink Venom - I Bring the Pain Like…", id = 14548710952, icon = "rbxthumb://type=Asset&id=14548710952&w=150&h=150", price = 0, lastupdated = 1732579780, sort = {} },
-    { name = "Stadium", id = 3360686498, icon = "rbxthumb://type=Asset&id=3360686498&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "BLACKPINK ROSÉ On The Ground", id = 15679958535, icon = "rbxthumb://type=Asset&id=15679958535&w=150&h=150", price = 0, lastupdated = 1703004441, sort = {} },
-    { name = "Bunny Hop", id = 4646296016, icon = "rbxthumb://type=Asset&id=4646296016&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "BLACKPINK Shut Down - Part 1", id = 14901369589, icon = "rbxthumb://type=Asset&id=14901369589&w=150&h=150", price = 0, lastupdated = 1732579788, sort = {} },
-    { name = "BLACKPINK Kill This Love", id = 16181843366, icon = "rbxthumb://type=Asset&id=16181843366&w=150&h=150", price = 0, lastupdated = 1706724495, sort = {} },
-    { name = "SpongeBob Dance", id = 18443271885, icon = "rbxthumb://type=Asset&id=18443271885&w=150&h=150", price = 0, lastupdated = 1720722377, sort = {} },
-    { name = "Borock's Rage", id = 3236848555, icon = "rbxthumb://type=Asset&id=3236848555&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "The Conductor - George Ezra", id = 10370926562, icon = "rbxthumb://type=Asset&id=10370926562&w=150&h=150", price = 0, lastupdated = 1658879306, sort = {} },
-    { name = "Swag Walk", id = 10478377385, icon = "rbxthumb://type=Asset&id=10478377385&w=150&h=150", price = 0, lastupdated = 1659642405, sort = {} },
-    { name = "BLACKPINK Shut Down - Part 2", id = 14901371589, icon = "rbxthumb://type=Asset&id=14901371589&w=150&h=150", price = 0, lastupdated = 1732579772, sort = {} },
-    { name = "BLACKPINK Ice Cream", id = 16181840356, icon = "rbxthumb://type=Asset&id=16181840356&w=150&h=150", price = 0, lastupdated = 1706724478, sort = {} },
-    { name = "Superhero Reveal", id = 3696759798, icon = "rbxthumb://type=Asset&id=3696759798&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "BLACKPINK Pink Venom - Get em Get em Get em", id = 14548709888, icon = "rbxthumb://type=Asset&id=14548709888&w=150&h=150", price = 0, lastupdated = 1732579749, sort = {} },
-    { name = "NBA Monster Dunk", id = 82163305721376, icon = "rbxthumb://type=Asset&id=82163305721376&w=150&h=150", price = 0, lastupdated = 1739396236, sort = {} },
-    { name = "TWICE ABCD by Nayeon", id = 18933761755, icon = "rbxthumb://type=Asset&id=18933761755&w=150&h=150", price = 0, lastupdated = 1723561480, sort = {} },
-    { name = "BURBERRY LOLA ATTITUDE - NIMBUS", id = 10147924028, icon = "rbxthumb://type=Asset&id=10147924028&w=150&h=150", price = 0, lastupdated = 1657728069, sort = {} },
-    { name = "Ud'zal's Summoning", id = 3307604888, icon = "rbxthumb://type=Asset&id=3307604888&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "TWICE Pop by Nayeon", id = 13768975574, icon = "rbxthumb://type=Asset&id=13768975574&w=150&h=150", price = 0, lastupdated = 1687549777, sort = {} },
-    { name = "TWICE Set Me Free - Dance 1", id = 12715395038, icon = "rbxthumb://type=Asset&id=12715395038&w=150&h=150", price = 0, lastupdated = 1678474186, sort = {} },
-    { name = "TWICE Set Me Free - Dance 2", id = 12715397488, icon = "rbxthumb://type=Asset&id=12715397488&w=150&h=150", price = 0, lastupdated = 1678474350, sort = {} },
-    { name = "Hyperfast 5G Dance Move", id = 9408642191, icon = "rbxthumb://type=Asset&id=9408642191&w=150&h=150", price = 0, lastupdated = 1663281650, sort = {} },
-    { name = "You can't sit with us - Sunmi", id = 9983549160, icon = "rbxthumb://type=Asset&id=9983549160&w=150&h=150", price = 0, lastupdated = 1657679637, sort = {} },
-    { name = "Hype Dance", id = 3696757129, icon = "rbxthumb://type=Asset&id=3696757129&w=150&h=150", price = 0, lastupdated = 1663281650, sort = {} },
-    { name = "BLACKPINK - How You Like That", id = 16874596971, icon = "rbxthumb://type=Asset&id=16874596971&w=150&h=150", price = 0, lastupdated = 1711414303, sort = {} },
-    { name = "BLACKPINK - Lovesick Girls", id = 16874600526, icon = "rbxthumb://type=Asset&id=16874600526&w=150&h=150", price = 0, lastupdated = 1711414329, sort = {} },
-    { name = "TWICE Like Ooh-Ahh", id = 14124050904, icon = "rbxthumb://type=Asset&id=14124050904&w=150&h=150", price = 0, lastupdated = 1689868872, sort = {} },
-    { name = "Heisman Pose", id = 3696763549, icon = "rbxthumb://type=Asset&id=3696763549&w=150&h=150", price = 0, lastupdated = 1663281650, sort = {} },
-    { name = "BLACKPINK As If It's Your Last", id = 18855603653, icon = "rbxthumb://type=Asset&id=18855603653&w=150&h=150", price = 0, lastupdated = 1723090177, sort = {} },
-    { name = "TWICE Moonlight Sunrise ", id = 12715393154, icon = "rbxthumb://type=Asset&id=12715393154&w=150&h=150", price = 0, lastupdated = 1678474249, sort = {} },
-    { name = "TWICE Fancy", id = 13520623514, icon = "rbxthumb://type=Asset&id=13520623514&w=150&h=150", price = 0, lastupdated = 1685112803, sort = {} },
-    { name = "Point2", id = 3576823880, icon = "rbxthumb://type=Asset&id=3576823880&w=150&h=150", price = 0, lastupdated = 1663281650, sort = {} },
-    { name = "BURBERRY LOLA ATTITUDE - GEM", id = 10147916560, icon = "rbxthumb://type=Asset&id=10147916560&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "Vroom Vroom", id = 18526410572, icon = "rbxthumb://type=Asset&id=18526410572&w=150&h=150", price = 0, lastupdated = 1721931643, sort = {} },
-    { name = "Hwaiting (화이팅)", id = 9528291779, icon = "rbxthumb://type=Asset&id=9528291779&w=150&h=150", price = 0, lastupdated = 1663281650, sort = {} },
-    { name = "BLACKPINK JENNIE You and Me", id = 15439457146, icon = "rbxthumb://type=Asset&id=15439457146&w=150&h=150", price = 0, lastupdated = 1701124471, sort = {} },
-    { name = "Tilt", id = 3360692915, icon = "rbxthumb://type=Asset&id=3360692915&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "Applaud", id = 5915779043, icon = "rbxthumb://type=Asset&id=5915779043&w=150&h=150", price = 0, lastupdated = 1663264200, sort = {} },
-    { name = "BLACKPINK DDU-DU DDU-DU", id = 16553262614, icon = "rbxthumb://type=Asset&id=16553262614&w=150&h=150", price = 0, lastupdated = 1709100790, sort = {} },
-    { name = "BURBERRY LOLA ATTITUDE - HYDRO", id = 10147926081, icon = "rbxthumb://type=Asset&id=10147926081&w=150&h=150", price = 0, lastupdated = 1657814503, sort = {} },
-    { name = "BURBERRY LOLA ATTITUDE - REFLEX", id = 10147921916, icon = "rbxthumb://type=Asset&id=10147921916&w=150&h=150", price = 0, lastupdated = 1663281649, sort = {} },
-    { name = "Air Guitar", id = 3696761354, icon = "rbxthumb://type=Asset&id=3696761354&w=150&h=150", price = 0, lastupdated = 1663264200, sort = {} },
-    { name = "Annyeong (안녕)", id = 9528286240, icon = "rbxthumb://type=Asset&id=9528286240&w=150&h=150", price = 0, lastupdated = 1651539455, sort = {} },
-    { name = "BLACKPINK Boombayah Emote", id = 16553259683, icon = "rbxthumb://type=Asset&id=16553259683&w=150&h=150", price = 0, lastupdated = 1709339907, sort = {} },
-    { name = "Victory - 24kGoldn", id = 9178397781, icon = "rbxthumb://type=Asset&id=9178397781&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-    { name = "Hello", id = 3576686446, icon = "rbxthumb://type=Asset&id=3576686446&w=150&h=150", price = 0, lastupdated = 1663281650, sort = {} },
-    { name = "Vans Ollie", id = 18305539673, icon = "rbxthumb://type=Asset&id=18305539673&w=150&h=150", price = 0, lastupdated = 1719938530, sort = {} },
-    { name = "TWICE Strategy", id = 106862678450011, icon = "rbxthumb://type=Asset&id=106862678450011&w=150&h=150", price = 0, lastupdated = 1734540744, sort = {} },
-    { name = "TWICE The Feels", id = 12874468267, icon = "rbxthumb://type=Asset&id=12874468267&w=150&h=150", price = 0, lastupdated = 1679673336, sort = {} },
-    { name = "TWICE What Is Love", id = 13344121112, icon = "rbxthumb://type=Asset&id=13344121112&w=150&h=150", price = 0, lastupdated = 1683906913, sort = {} },
-    { name = "Shrug", id = 3576968026, icon = "rbxthumb://type=Asset&id=3576968026&w=150&h=150", price = 0, lastupdated = 1663281651, sort = {} },
-}
-
--- Adicionar novos emotes
-local function addEmote(name, id, price, date)
-    local months = {
-        Jan = 1, Feb = 2, Mar = 3, Apr = 4, May = 5, Jun = 6,
-        Jul = 7, Aug = 8, Sep = 9, Oct = 10, Nov = 11, Dec = 12
-    }
-    local function dateToUnix(d)
-        local mon, day, year = d:match("(%a+)%s+(%d+),%s*(%d+)")
-        return os.time({
-            year = tonumber(year),
-            month = months[mon],
-            day = tonumber(day),
-            hour = 0,
-            min = 0,
-            sec = 0
-        })
-    end
-    
-    table.insert(Emotes, {
-        name = name,
-        id = id,
-        icon = "rbxthumb://type=Asset&id=" .. id .. "&w=150&h=150",
-        price = price,
-        lastupdated = dateToUnix(date),
-        sort = {}
-    })
-end
-
-addEmote("PARROT PARTY DANCE", 121067808279598, 39, "Aug 08, 2025")
-addEmote("Dance n' Prance", 99031916674986, 39, "Aug 08, 2025")
-addEmote("R15 Death (Accurate)", 114899970878842, 39, "Aug 08, 2025")
-addEmote("Wally West", 133948663586698, 39, "Aug 08, 2025")
-addEmote("Take The L", 123159156696507, 39, "Aug 08, 2025")
-addEmote("Xaviersobased", 131763631172236, 39, "Aug 09, 2025")
-addEmote("Belly Dancing", 131939729732240, 39, "Aug 08, 2025")
-addEmote("RAT DANCE", 133461102795137, 78, "Aug 08, 2025")
-addEmote("CaramellDansen", 93105950995997, 39, "Aug 08, 2025")
-addEmote("Biblically Accurate", 133596366979822, 39, "Aug 08, 2025")
-addEmote("Rambunctious", 134311528115559, 39, "Aug 08, 2025")
-addEmote("Ballin", 96293409369770, 39, "Aug 17, 2025")
-addEmote("Die Lit", 121001502815813, 39, "Aug 08, 2025")
-addEmote("Nyan Nyan!", 73796726960568, 39, "Aug 08, 2025")
-addEmote("Teto Territory", 114428584463004, 39, "Aug 08, 2025")
-addEmote("Skibidi", 124828909173982, 39, "Aug 08, 2025")
-addEmote("Chronoshift", 92600655160976, 39, "Aug 08, 2025")
-addEmote("Floating on Clouds", 111426928948833, 39, "Aug 08, 2025")
-addEmote("Jersey Joe", 134149640725489, 39, "Aug 08, 2025")
-addEmote("Virtual Insanity", 83261816934732, 39, "Aug 09, 2025")
-addEmote("Doodle Dance", 107091254142209, 39, "Aug 08, 2025")
-addEmote("Subject 3", 83732367439808, 39, "Aug 08, 2025")
-addEmote("Club Penguin", 98099211500155, 39, "Aug 09, 2025")
-addEmote("Kazotsky", 97629500912487, 39, "Aug 08, 2025")
-addEmote("Miku Dance", 117734400993750, 39, "Aug 08, 2025")
-addEmote("Deltarune - Tenna Swing", 103139492736941, 39, "Aug 08, 2025")
-addEmote("Hakari Dance", 80270168146449, 39, "Aug 08, 2025")
-addEmote("Addendum Dance [R6]", 134442882516163, 39, "Aug 09, 2025")
-addEmote("Gangnam Style", 77205409178702, 39, "Aug 08, 2025")
-addEmote("Push-Up", 117922227854118, 39, "Aug 09, 2025")
-addEmote("Split", 98522218962476, 39, "Aug 08, 2025")
-addEmote("PROXIMA", 81390693780805, 39, "Aug 08, 2025")
-addEmote("HeadBanging", 87447252507832, 39, "Aug 08, 2025")
-addEmote("Assumptions", 127507691649322, 39, "Aug 08, 2025")
-addEmote("Jumpstyle", 99563839802389, 39, "Aug 08, 2025")
-addEmote("Flopping Fish", 133142324349281, 39, "Aug 08, 2025")
-addEmote("Kicking Feet Sit", 78758922757947, 39, "Aug 08, 2025")
-addEmote("Fancy Feets", 124512151372711, 39, "Aug 08, 2025")
-addEmote("Cute Sit", 90244178386698, 39, "Aug 08, 2025")
-addEmote("Absolute Cinema", 97258018304125, 39, "Aug 08, 2025")
-addEmote("Bubbly Sit", 112758073578333, 39, "Aug 08, 2025")
-addEmote("Become A Car", 131544122623505, 39, "Aug 08, 2025")
-addEmote("Hiding Human Box", 124935873390035, 39, "Aug 08, 2025")
-addEmote("Magical Pose", 135489824748823, 39, "Aug 08, 2025")
-addEmote("Griddy", 116065653184749, 39, "Aug 08, 2025")
-addEmote("Gon Rage", 139639173024927, 39, "Aug 10, 2025")
-addEmote("Become Couch", 93335594132613, 39, "Aug 10, 2025")
-addEmote("Spare Change", 126749574427431, 39, "Aug 10, 2025")
-addEmote("Paranoid", 123407922818447, 39, "Aug 10, 2025")
-addEmote("Kawaii Groove", 77152953688098, 39, "Aug 18, 2025")
-addEmote("Ai Cat dance", 136593170936320, 39, "Aug 18, 2025")
-addEmote("Smeeze", 131683926643291, 39, "Aug 18, 2025")
-addEmote("Onion", 113890289455724, 39, "Aug 18, 2025")
-addEmote("Thinking", 124584711308900, 39, "Aug 18, 2025")
-addEmote("Little Obbyist", 134584040095037, 39, "Aug 10, 2025")
-addEmote("Aura Fly", 78755795767408, 39, "Aug 10, 2025")
-addEmote("Invisible", 109899950448992, 39, "Aug 10, 2025")
-addEmote("Slenderman", 81926508907412, 39, "Aug 10, 2025")
-addEmote("Chill pose", 77058107325712, 39, "Aug 10, 2025")
-addEmote("house", 93552301087938, 39, "Aug 10, 2025")
-addEmote("baby", 82824758023484, 39, "Aug 10, 2025")
-addEmote("zenitsu", 92750276568993, 39, "Aug 10, 2025")
-addEmote("gun", 73562814360939, 39, "Aug 10, 2025")
-addEmote("Spy Laugh tf2", 137720205462499, 39, "Aug 10, 2025") 
-addEmote("Head Juggling", 82224981519682, 39, "Aug 09, 2025")
-addEmote("Omniman Think", 70560694892323, 39, "Aug 09, 2025")
-addEmote("Ishowspeed Shake Dancing", 138386881919239, 39, "Aug 09, 2025")
-addEmote("Wait", 106569806588657, 39, "Aug 09, 2025")
-addEmote("Shinji Pose", 97629500912487, 39, "Aug 09, 2025")
-addEmote("Come At Me [ R6 ]", 107758370940834, 39, "Aug 09, 2025")
-addEmote("Oscillating Fan", 71493999860590, 39, "Aug 09, 2025")
-addEmote("Locked In", 110145155419199, 39, "Aug 10, 2025")
-addEmote("BirdBrain", 105730788757021, 39, "Aug 10, 2025")
-addEmote("Hakari (FULL)", 71056659089869, 39, "Aug 09, 2025")
-addEmote("How A Creeper Walk", 108714986908463, 39, "Aug 10, 2025")
-addEmote("Hakari (R6)", 127103118569243, 39, "Aug 10, 2025")
-addEmote("Strongest Stance", 80146495484274, 39, "Aug 09, 2025")
-addEmote("Cat Things", 131193808160056, 39, "Aug 09, 2025")
-addEmote("Doggy Things", 105206768873249, 39, "Aug 09, 2025")
-addEmote("Wally West Edit", 72247161810866, 39, "Aug 09, 2025")
-addEmote("24 Hour Cinderella", 122972776209997, 39, "Aug 09, 2025")
-addEmote("Mesmerizer", 92707348383277, 39, "Aug 15, 2025")
-addEmote("Stylish Float", 97497383284399, 39, "Aug 15, 2025")
-addEmote("SpongeBob Shuffle", 107899954696611, 39, "Aug 15, 2025")
-addEmote("Electro Shuffle", 96426537876059, 39, "Aug 13, 2025")
-addEmote("Foreign Shuffle", 101507732056031, 39, "Aug 13, 2025")
-addEmote("Caipirinha", 100165303717371, 39, "Aug 15, 2025")
-addEmote("Squidward Yell", 109244554368414, 39, "Aug 15, 2025")
-addEmote("Hakari (Forsaken)", 73271793399763, 39, "Aug 15, 2025")
-addEmote("Teto Dance", 93031502567721, 39, "Aug 15, 2025")
-addEmote("Michael Myers", 88229016850146, 39, "Aug 15, 2025")
-addEmote("Gun Shoot", 105055412595333, 39, "Aug 15, 2025")
-addEmote("Torture Dance", 116099356619436, 39, "Aug 16, 2025")
-addEmote("Yapping Yap Yap Gesture",119870339321091, 39, "Aug 16, 2025")
-addEmote("Luxurious / Springtrap",132151459316300 , 39, "Aug 16, 2025")
-addEmote("Hand Drill",103882178542598 , 39, "Aug 16, 2025")
-addEmote("exclamation",82714556886471 , 39, "Aug 16, 2025")
-addEmote("Mewing / Mogging",135493514352956 , 39, "Aug 16, 2025")
-addEmote("lemon melon cookie - Miku",79874689836683 , 39, "Aug 16, 2025")
-addEmote("Cute Jump",80556794144838, 39, "Aug 16, 2025")
-addEmote("Billy Bounce", 126516908191316, 39, "Aug 15, 2025")
-addEmote("What U Want / Prince Egypt", 133751526608969, 39, "Aug 15, 2025")
-addEmote("Rabbit Hole - Miku", 133481721436918, 39, "Aug 15, 2025")
-addEmote("Garou", 86200585395371, 39, "Aug 09, 2025")
-addEmote("Dio Pose", 76736978166708, 39, "Aug 09, 2025")
-addEmote("Golden Freddy", 122463450997235, 39, "Aug 09, 2025")
-addEmote("Noclip, Speed", 137006085779408, 39, "Aug 09, 2025")
-addEmote("Static [Hatsune Miku]", 84534006084837, 39, "Aug 09, 2025")
-addEmote("GOALL", 78830825254717, 39, "Aug 09, 2025")
-addEmote("Lethal Dance", 77108921633993, 39, "Aug 09, 2025")
-addEmote("Plug Walk", 100359724990859, 39, "Aug 09, 2025")
-addEmote("At Ease", 76993139936388, 39, "Aug 09, 2025")
-addEmote("Conga", 97547955535086, 39, "Aug 09, 2025")
-addEmote("Barrel", 84511772437190, 39, "Aug 08, 2025")
-addEmote("Helicopter", 84555218084038, 39, "Aug 08, 2025")
-addEmote("Aura Farm Boat", 88042995626011, 39, "Aug 09, 2025")
-addEmote("Prince Of Egypt", 134063402217274, 39, "Aug 08, 2025")
-addEmote("Jersey Joe2", 115782117564871, 39, "Aug 09, 2025")
-addEmote("Deltarune - Tenna Dance", 73715378215546, 39, "Aug 08, 2025")
-addEmote("California Girl", 132074413582912, 39, "Aug 08, 2025")
-addEmote("Default Dance", 80877772569772, 39, "Aug 08, 2025")
-addEmote("Shocked meme", 129501229484294, 39, "Aug 08, 2025")
-addEmote("Family Guy", 78459263478161, 39, "Aug 08, 2025")
-addEmote("Car Transformation", 96887377943085, 39, "Aug 08, 2025")
-addEmote("Insanity", 129843344424281, 39, "Aug 08, 2025")
-addEmote("Honored One", 121643381580730, 39, "Aug 08, 2025")
-addEmote("Sukuna", 91839607010745, 39, "Aug 08, 2025")
-addEmote("Dropper", 130358790702800, 39, "Aug 08, 2025")
-addEmote("Be Not Afraid", 70635223083942, 39, "Aug 08, 2025")
-addEmote("Macarena", 91274761264433, 39, "Aug 08, 2025")
-addEmote("Helicopter2", 119431985170060, 39, "Aug 08, 2025")
-addEmote("RONALDO", 97547486465713, 39, "Aug 08, 2025")
-addEmote("Nya Anime Dance", 126647057611522, 39, "Aug 08, 2025")
-addEmote("Do that thang", 113772829398170, 39, "Aug 08, 2025")
-addEmote("Squat?", 95441477641149, 39, "Aug 08, 2025")
-addEmote("Slickback", 103789826265487, 39, "Aug 08, 2025")
-
--- Ordenar emotes por preço
-table.sort(Emotes, function(a, b)
-    return a.price < b.price
-end)
-
--- ============= FUNÇÕES DE EMOTE =============
-local FavoritedEmotes = {}
-local favoriteFileName = "FavoritedEmotes.txt"
-
--- Carregar favoritos
-if isfile(favoriteFileName) then
-    if not pcall(function()
-        FavoritedEmotes = HttpService:JSONDecode(readfile(favoriteFileName))
-    end) then
-        FavoritedEmotes = {}
-    end
-else
-    writefile(favoriteFileName, HttpService:JSONEncode(FavoritedEmotes))
-end
-
--- Atualizar formato antigo de favoritos
-local UpdatedFavorites = {}
-for i, name in pairs(FavoritedEmotes) do
-    if typeof(name) == "string" then
-        for i, emote in pairs(Emotes) do
-            if emote.name == name then
-                table.insert(UpdatedFavorites, emote.id)
-                break
-            end
-        end
-    end
-end
-if #UpdatedFavorites ~= 0 then
-    FavoritedEmotes = UpdatedFavorites
-    writefile(favoriteFileName, HttpService:JSONEncode(FavoritedEmotes))
-end
-
--- Função para tocar emote
-local function PlayEmote(name, id)
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-    
-    if character.Humanoid.RigType ~= Enum.HumanoidRigType.R6 then
-        local success, err = pcall(function()
-            humanoid:PlayEmoteAndGetAnimTrackById(id)
-        end)
-        if not success then
-            local desc = humanoid:FindFirstChildOfClass("HumanoidDescription")
-            if desc then
-                desc:AddEmote(name, id)
-                humanoid:PlayEmoteAndGetAnimTrackById(id)
-            end
-        end
-    else
-        WindUI:Notify({
-            Title = "Erro",
-            Content = "Você precisa estar em R15 para usar emotes!",
-            Duration = 3,
-            Image = "error"
-        })
-    end
-end
-
--- ============= CRIAR WINDOW PRINCIPAL =============
-local Window = WindUI:CreateWindow({
-    Title = "VisualWorks Premium",
-    Icon = "shield",
-    Author = "by nyc.xz#0001",
-    Folder = "VisualWorksPremium",
-    Size = UDim2.fromOffset(780, 580),
-    MinSize = Vector2.new(700, 500),
-    MaxSize = Vector2.new(1000, 700),
-    Transparent = true,
-    Theme = "Dark",
-    Resizable = true,
-    SideBarWidth = 240,
-    BackgroundImageTransparency = 0.42,
-    HideSearchBar = false,
-    ScrollBarEnabled = true,
-    User = {
-        Enabled = true,
-        Anonymous = false,
-        Callback = function()
-            WindUI:Notify({
-                Title = "VisualWorks",
-                Content = "Premium - nyc.xz#0001",
-                Duration = 3,
-                Image = "info"
-            })
-        end,
-    },
-    -- SEM KEY SYSTEM
-})
-
--- ============= TAB PRINCIPAL =============
-local MainTab = Window:Tab({ Title = "Principal", Icon = "home" })
-
-MainTab:Button({
-    Title = "📋 Discord",
-    Callback = function()
-        setclipboard("discord.gg/ynx")
-        WindUI:Notify({
-            Title = "Discord",
-            Content = "Link copiado!",
-            Duration = 3,
-            Image = "success"
-        })
-    end
-})
-
-MainTab:Button({
-    Title = "🗑️ Remover Todos Acessórios",
-    Callback = RemoveAllAccessories
-})
-
-MainTab:Button({
-    Title = "🔄 Reset Character",
-    Callback = function()
-        if LocalPlayer.Character then
-            LocalPlayer.Character:BreakJoints()
+            if noclipConnection then noclipConnection:Disconnect() end
         end
     end
 })
 
-MainTab:Slider({
-    Title = "🎮 FPS Cap",
-    Default = 444,
-    Min = 30,
-    Max = 999,
-    Rounding = 0,
-    Callback = function(v)
-        setfpscap(v)
-    end
-})
+-- Anti Ragdoll
+TabLocal:AddToggle({
+    Name = "Anti Ragdoll",
+    Default = false,
+    Flag = "AntiRagdoll",
+    Callback = function(state)
+        _G.SHub.Toggles.AntiRagdoll = state
+        local antiRagConnection = _G.SHub.Connections.AntiRagdoll
 
--- ============= TAB VALKYRIES =============
-local ValkyrieTab = Window:Tab({ Title = "Valkyries", Icon = "crown" })
-
-ValkyrieTab:Button({
-    Title = "❌ Remover Todos Acessórios",
-    Callback = RemoveAllAccessories
-})
-
-ValkyrieTab:Divider({ Title = "Coleção Valkyrie" })
-
-local Valkyries = {
-    {"Blackvalk", 124730194},
-    {"Emerald Valkyrie", 2830437685},
-    {"Violet Valkyrie", 1402432199},
-    {"Valiant Valkyrie", 7781687598},
-    {"Valkyrie Helm", 1365767},
-    {"Sparkle Time Valkyrie", 1180433861},
-    {"Ice Valkyrie", 4390891467}
-}
-
-for _, valk in ipairs(Valkyries) do
-    ValkyrieTab:Button({
-        Title = valk[1],
-        Callback = function()
-            pcall(function()
-                local accessory = game:GetObjects("rbxassetid://" .. valk[2])[1]
-                WeldAccessory(LocalPlayer.Character, accessory)
-                WindUI:Notify({
-                    Title = "Sucesso!",
-                    Content = valk[1] .. " equipado!",
-                    Duration = 2,
-                    Image = "success"
-                })
+        if state then
+            if antiRagConnection then antiRagConnection:Disconnect() end
+            _G.SHub.Connections.AntiRagdoll = RunService.Heartbeat:Connect(function()
+                if not _G.SHub.Toggles.AntiRagdoll then
+                    _G.SHub.Connections.AntiRagdoll:Disconnect()
+                    _G.SHub.Connections.AntiRagdoll = nil
+                    return
+                end
+                if Humanoid then
+                    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+                    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                end
+                local stats = LocalPlayer:FindFirstChild("TempPlayerStatsModule")
+                if stats then
+                    local ragdoll = stats:FindFirstChild("Ragdoll")
+                    if ragdoll and ragdoll:IsA("BoolValue") and ragdoll.Value then
+                        repeat
+                            task.wait()
+                            if Humanoid then
+                                Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                            end
+                        until not ragdoll.Value or not _G.SHub.Toggles.AntiRagdoll
+                    end
+                end
             end)
-        end
-    })
-end
-
--- ============= TAB DOMINUS =============
-local DominusTab = Window:Tab({ Title = "Dominus", Icon = "gem" })
-
-DominusTab:Button({
-    Title = "❌ Remover Todos Acessórios",
-    Callback = RemoveAllAccessories
-})
-
-DominusTab:Divider({ Title = "Coleção Dominus" })
-
-local DominusList = {
-    {"Dominus Vespertilio", 96103379},
-    {"Dominus Rex", 250395631},
-    {"Dominus Praefectus", 527365852},
-    {"Dominus Messor", 64444871},
-    {"Dominus Infernus", 31101391},
-    {"Dominus Frigidus", 48545806},
-    {"Dominus Formidulosus", 4255053867},
-    {"Dominus Empyreus", 21070012},
-    {"Dominus Aureus", 138932314},
-    {"Dominus Astra", 162067148}
-}
-
-for _, dom in ipairs(DominusList) do
-    DominusTab:Button({
-        Title = dom[1],
-        Callback = function()
-            pcall(function()
-                local accessory = game:GetObjects("rbxassetid://" .. dom[2])[1]
-                WeldAccessory(LocalPlayer.Character, accessory)
-                WindUI:Notify({
-                    Title = "Sucesso!",
-                    Content = dom[1] .. " equipado!",
-                    Duration = 2,
-                    Image = "success"
-                })
-            end)
-        end
-    })
-end
-
--- ============= TAB FEDORAS =============
-local FedoraTab = Window:Tab({ Title = "Fedoras", Icon = "hat" })
-
-FedoraTab:Button({
-    Title = "❌ Remover Todos Acessórios",
-    Callback = RemoveAllAccessories
-})
-
-FedoraTab:Divider({ Title = "Sparkle Time Fedoras" })
-
-local Fedoras = {
-    {"Sky-Blue Sparkle Time", 493476042},
-    {"Sparkle Time Fedora", 1285307},
-    {"Teal Sparkle Time", 147180077},
-    {"Green Sparkle Time", 100929604},
-    {"Midnight-Blue Sparkle Time", 119916949},
-    {"Red Sparkle Time", 72082328},
-    {"Purple Sparkle Time", 63043890},
-    {"Black Sparkle Time", 259423244},
-    {"White Sparkle Time", 1016143686},
-    {"Pink Sparkle Time", 334663683},
-    {"Orange Sparkle Time", 215751161},
-    {"Bluesteel Fedora", 98346834}
-}
-
-for _, fed in ipairs(Fedoras) do
-    FedoraTab:Button({
-        Title = fed[1],
-        Callback = function()
-            pcall(function()
-                local accessory = game:GetObjects("rbxassetid://" .. fed[2])[1]
-                WeldAccessory(LocalPlayer.Character, accessory)
-                WindUI:Notify({
-                    Title = "Sucesso!",
-                    Content = fed[1] .. " equipado!",
-                    Duration = 2,
-                    Image = "success"
-                })
-            end)
-        end
-    })
-end
-
--- ============= TAB FIERY HORNS =============
-local HornsTab = Window:Tab({ Title = "Fiery Horns", Icon = "flame" })
-
-HornsTab:Button({
-    Title = "❌ Remover Todos Acessórios",
-    Callback = RemoveAllAccessories
-})
-
-HornsTab:Divider({ Title = "Horns Collection" })
-
-local Horns = {
-    {"Fiery Horns of the Netherworld", 215718515},
-    {"Frozen Horns of the Frigid Planes", 74891470},
-    {"Poisoned Horns of the Toxic Wasteland", 1744060292}
-}
-
-for _, horn in ipairs(Horns) do
-    HornsTab:Button({
-        Title = horn[1],
-        Callback = function()
-            pcall(function()
-                local accessory = game:GetObjects("rbxassetid://" .. horn[2])[1]
-                WeldAccessory(LocalPlayer.Character, accessory)
-                WindUI:Notify({
-                    Title = "Sucesso!",
-                    Content = horn[1] .. " equipado!",
-                    Duration = 2,
-                    Image = "success"
-                })
-            end)
-        end
-    })
-end
-
--- ============= TAB FACES =============
-local FacesTab = Window:Tab({ Title = "Faces", Icon = "smile" })
-
-FacesTab:Divider({ Title = "Beast Mode" })
-
-local BeastFaces = {
-    {"Red Beast", 127959433},
-    {"Blue Beast", 209712379},
-    {"Purple Beast", 2606174048},
-    {"Green Beast", 2225757922}
-}
-
-for _, face in ipairs(BeastFaces) do
-    FacesTab:Button({
-        Title = face[1],
-        Callback = function()
-            ChangeFace(face[2])
-            WindUI:Notify({
-                Title = "Face Alterada",
-                Content = face[1] .. " equipado!",
-                Duration = 2,
-                Image = "success"
-            })
-        end
-    })
-end
-
-FacesTab:Divider({ Title = "Bubble Trouble" })
-
-local BubbleFaces = {
-    {"Purple Bubble", 362047189},
-    {"Green Bubble", 380753459},
-    {"Pink Bubble", 19264782},
-    {"Blue Bubble", 330393309}
-}
-
-for _, face in ipairs(BubbleFaces) do
-    FacesTab:Button({
-        Title = face[1],
-        Callback = function()
-            ChangeFace(face[2])
-            WindUI:Notify({
-                Title = "Face Alterada",
-                Content = face[1] .. " equipado!",
-                Duration = 2,
-                Image = "success"
-            })
-        end
-    })
-end
-
-FacesTab:Divider({ Title = "Main Faces" })
-
-local MainFaces = {
-    {"Prankster", 20052028},
-    {"Playful Vampire", 2409281591},
-    {"Super Happy Face", 494290547},
-    {"Trouble Maker", 22920500},
-    {"Tattletale", 26343132}
-}
-
-for _, face in ipairs(MainFaces) do
-    FacesTab:Button({
-        Title = face[1],
-        Callback = function()
-            ChangeFace(face[2])
-            WindUI:Notify({
-                Title = "Face Alterada",
-                Content = face[1] .. " equipado!",
-                Duration = 2,
-                Image = "success"
-            })
-        end
-    })
-end
-
-FacesTab:Divider({ Title = "Other Faces" })
-
-local OtherFaces = {
-    {"Red Glowing Eyes", 179693472},
-    {"Yum!", 26018945},
-    {"ROBLOX Madness", 129900258},
-    {"Silver Punk", 387256104},
-    {"Punk Face", 119768621},
-    {"Yellow Glowing Eyes", 416830979}
-}
-
-for _, face in ipairs(OtherFaces) do
-    FacesTab:Button({
-        Title = face[1],
-        Callback = function()
-            ChangeFace(face[2])
-            WindUI:Notify({
-                Title = "Face Alterada",
-                Content = face[1] .. " equipado!",
-                Duration = 2,
-                Image = "success"
-            })
-        end
-    })
-end
-
--- ============= TAB HEADLESS/KORBLOX =============
-local HKTab = Window:Tab({ Title = "Headless/Korblox", Icon = "skull" })
-
-HKTab:Divider({ Title = "Headless" })
-
-HKTab:Button({
-    Title = "👤 Ativar Headless",
-    Callback = function()
-        local head = LocalPlayer.Character:FindFirstChild("Head")
-        if head then
-            head.Transparency = 1
-            local face = head:FindFirstChild("face") or head:FindFirstChild("Face")
-            if face then face:Destroy() end
-            WindUI:Notify({
-                Title = "Headless",
-                Content = "Modo Headless ativado!",
-                Duration = 2,
-                Image = "success"
-            })
+        else
+            if antiRagConnection then antiRagConnection:Disconnect() end
         end
     end
 })
 
-HKTab:Button({
-    Title = "👤 Remover Headless",
-    Callback = function()
-        local head = LocalPlayer.Character:FindFirstChild("Head")
-        if head then
-            head.Transparency = 0
-            WindUI:Notify({
-                Title = "Headless",
-                Content = "Modo Headless desativado!",
-                Duration = 2,
-                Image = "success"
-            })
-        end
-    end
-})
+-- ABA ANTI & NOTIFY
+TabAnti:AddSection({Name = "Anti"})
 
-HKTab:Divider({ Title = "Korblox" })
-
-HKTab:Button({
-    Title = "🦵 Right Korblox Leg",
-    Callback = function()
-        ApplyKorblox("right")
-        WindUI:Notify({
-            Title = "Korblox",
-            Content = "Right Korblox equipado!",
-            Duration = 2,
-            Image = "success"
-        })
-    end
-})
-
-HKTab:Button({
-    Title = "🦵 Left Korblox Leg (Corrigido)",
-    Callback = function()
-        ApplyKorblox("left")
-        WindUI:Notify({
-            Title = "Korblox",
-            Content = "Left Korblox equipado!",
-            Duration = 2,
-            Image = "success"
-        })
-    end
-})
-
-HKTab:Button({
-    Title = "❌ Remover Korblox",
-    Callback = RemoveKorblox
-})
-
--- ============= TAB CUSTOM ITEM =============
-local CustomTab = Window:Tab({ Title = "Custom Item", Icon = "wand" })
-
-local customItemId = ""
-
-CustomTab:Input({
-    Title = "ID do Acessório",
-    Default = "",
-    Placeholder = "Digite o ID do item...",
-    Callback = function(v)
-        customItemId = v:match("%d+") or v
-    end
-})
-
-CustomTab:Button({
-    Title = "✨ Equipar Item Personalizado",
-    Callback = function()
-        if customItemId == "" then
-            WindUI:Notify({
-                Title = "Erro",
-                Content = "Digite um ID válido primeiro!",
-                Duration = 3,
-                Image = "error"
-            })
-            return
-        end
-        
-        local id = tonumber(customItemId)
-        if not id or id <= 0 then
-            WindUI:Notify({
-                Title = "Erro",
-                Content = "ID inválido!",
-                Duration = 3,
-                Image = "error"
-            })
-            return
-        end
-        
-        pcall(function()
-            local success, accessory = pcall(function()
-                return game:GetObjects("rbxassetid://" .. id)[1]
-            end)
-            
-            if success and accessory then
-                WeldAccessory(LocalPlayer.Character, accessory)
-                WindUI:Notify({
-                    Title = "Sucesso!",
-                    Content = "Item " .. id .. " equipado!",
-                    Duration = 3,
-                    Image = "success"
-                })
-            else
-                WindUI:Notify({
-                    Title = "Erro",
-                    Content = "Não foi possível carregar o ID",
-                    Duration = 3,
-                    Image = "error"
-                })
+-- Anti AFK
+TabAnti:AddToggle({
+    Name = "Anti AFK",
+    Default = false,
+    Flag = "AntiAfk",
+    Callback = function(state)
+        _G.SHub.Toggles.AntiAfk = state
+        if state then
+            if not _G.SHub.Connections.AntiAfk then
+                _G.SHub.Connections.AntiAfk = LocalPlayer.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.zero)
+                end)
             end
-        end)
-    end
-})
-
-CustomTab:Button({
-    Title = "🗑️ Limpar ID",
-    Callback = function()
-        customItemId = ""
-        WindUI:Notify({
-            Title = "Custom Item",
-            Content = "ID limpo!",
-            Duration = 2,
-            Image = "success"
-        })
-    end
-})
-
-CustomTab:Divider({ Title = "IDs Populares" })
-
-local PopularItems = {
-    {"Dominus Rex", 250395631},
-    {"Black Valkyrie", 124730194},
-    {"Sparkle Time Fedora", 1285307},
-    {"Fiery Horns", 215718515},
-    {"Left Korblox", 101851582},
-    {"Right Korblox", 902842737},
-}
-
-for _, item in ipairs(PopularItems) do
-    CustomTab:Button({
-        Title = "📋 " .. item[1] .. " (" .. item[2] .. ")",
-        Callback = function()
-            customItemId = tostring(item[2])
-            setclipboard(tostring(item[2]))
-            WindUI:Notify({
-                Title = "ID Copiado!",
-                Content = item[1] .. ": " .. item[2],
-                Duration = 2,
-                Image = "success"
-            })
-        end
-    })
-end
-
--- ============= TAB EMOTES =============
-local EmoteTab = Window:Tab({ Title = "Emotes", Icon = "music" })
-
-EmoteTab:Divider({ Title = "🎮 Emotes Premium - " .. #Emotes .. " disponíveis" })
-
--- Barra de pesquisa
-local searchEmoteTerm = ""
-EmoteTab:Input({
-    Title = "🔍 Pesquisar Emote",
-    Default = "",
-    Placeholder = "Nome do emote ou ID...",
-    Callback = function(v)
-        searchEmoteTerm = v:lower()
-        -- Recriar botões com filtro
-        recreateEmoteButtons()
-    end
-})
-
--- Botões de filtro
-EmoteTab:Divider({ Title = "Filtros" })
-
-local filterMode = "all" -- all, favorites
-EmoteTab:Dropdown({
-    Title = "📁 Mostrar",
-    Values = {"Todos os Emotes", "Apenas Favoritos"},
-    Default = 1,
-    Callback = function(v)
-        filterMode = v == "Todos os Emotes" and "all" or "favorites"
-        recreateEmoteButtons()
-    end
-})
-
-EmoteTab:Divider({ Title = "⭐ Emotes Favoritos" })
-
--- Função para favoritar/desfavoritar
-local function toggleFavorite(emoteId)
-    local index = table.find(FavoritedEmotes, emoteId)
-    if index then
-        table.remove(FavoritedEmotes, index)
-        WindUI:Notify({
-            Title = "Favoritos",
-            Content = "Emote removido dos favoritos!",
-            Duration = 2,
-            Image = "info"
-        })
-    else
-        table.insert(FavoritedEmotes, emoteId)
-        WindUI:Notify({
-            Title = "Favoritos",
-            Content = "Emote adicionado aos favoritos!",
-            Duration = 2,
-            Image = "success"
-        })
-    end
-    writefile(favoriteFileName, HttpService:JSONEncode(FavoritedEmotes))
-    recreateEmoteButtons()
-end
-
--- Container para botões de emote
-local emoteContainer = nil
-local emoteScrollFrame = nil
-
-local function recreateEmoteButtons()
-    if emoteContainer then
-        emoteContainer:Destroy()
-        emoteScrollFrame:Destroy()
-    end
-    
-    -- Criar ScrollFrame
-    emoteScrollFrame = Instance.new("ScrollingFrame")
-    emoteScrollFrame.Size = UDim2.new(1, 0, 1, -30)
-    emoteScrollFrame.Position = UDim2.new(0, 0, 0, 0)
-    emoteScrollFrame.BackgroundTransparency = 1
-    emoteScrollFrame.BorderSizePixel = 0
-    emoteScrollFrame.ScrollBarThickness = 4
-    emoteScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    emoteScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    
-    -- Container com GridLayout
-    emoteContainer = Instance.new("Frame")
-    emoteContainer.Size = UDim2.new(1, 0, 0, 0)
-    emoteContainer.BackgroundTransparency = 1
-    emoteContainer.AutomaticSize = Enum.AutomaticSize.Y
-    emoteContainer.Parent = emoteScrollFrame
-    
-    local grid = Instance.new("UIGridLayout")
-    grid.CellSize = UDim2.new(0, 110, 0, 120)
-    grid.CellPadding = UDim2.new(0, 8, 0, 8)
-    grid.FillDirection = Enum.FillDirection.Horizontal
-    grid.HorizontalAlignment = Enum.HorizontalAlignment.Left
-    grid.VerticalAlignment = Enum.VerticalAlignment.Top
-    grid.SortOrder = Enum.SortOrder.LayoutOrder
-    grid.Parent = emoteContainer
-    
-    -- Filtrar emotes
-    local filteredEmotes = {}
-    for _, emote in ipairs(Emotes) do
-        local shouldShow = true
-        
-        -- Filtro de pesquisa
-        if searchEmoteTerm ~= "" then
-            if not emote.name:lower():find(searchEmoteTerm) and not tostring(emote.id):find(searchEmoteTerm) then
-                shouldShow = false
+        else
+            if _G.SHub.Connections.AntiAfk then
+                _G.SHub.Connections.AntiAfk:Disconnect()
+                _G.SHub.Connections.AntiAfk = nil
             end
         end
-        
-        -- Filtro de favoritos
-        if shouldShow and filterMode == "favorites" then
-            if not table.find(FavoritedEmotes, emote.id) then
-                shouldShow = false
+    end
+})
+
+-- ABA GAME & RAGEBAIT
+TabGame:AddSection({Name = "Ragebait Beast"})
+
+-- Função para encontrar eventos do Beast
+local function getBeastEvent(eventType) -- eventType = "HammerEvent" or "PowersEvent"
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if eventType == "HammerEvent" and p.Character:FindFirstChild("Hammer") then
+                return p.Character:FindFirstChild(eventType, true)
+            elseif eventType == "PowersEvent" and p.Character:FindFirstChild("BeastPowers") then
+                return p.Character:FindFirstChild(eventType, true)
             end
         end
-        
-        if shouldShow then
-            table.insert(filteredEmotes, emote)
-        end
     end
-    
-    -- Criar botões para cada emote
-    for i, emote in ipairs(filteredEmotes) do
-        local isFavorite = table.find(FavoritedEmotes, emote.id) ~= nil
-        
-        local emoteFrame = Instance.new("Frame")
-        emoteFrame.Size = UDim2.new(0, 110, 0, 120)
-        emoteFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-        emoteFrame.BackgroundTransparency = 0.2
-        emoteFrame.BorderSizePixel = 0
-        emoteFrame.Parent = emoteContainer
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 8)
-        corner.Parent = emoteFrame
-        
-        -- Imagem do emote
-        local emoteImage = Instance.new("ImageLabel")
-        emoteImage.Size = UDim2.new(1, -20, 0, 70)
-        emoteImage.Position = UDim2.new(0, 10, 0, 5)
-        emoteImage.BackgroundTransparency = 1
-        emoteImage.Image = "rbxthumb://type=Asset&id=" .. emote.id .. "&w=150&h=150"
-        emoteImage.ScaleType = Enum.ScaleType.Fit
-        emoteImage.Parent = emoteFrame
-        
-        -- Nome do emote
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, -10, 0, 30)
-        nameLabel.Position = UDim2.new(0, 5, 0, 80)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = emote.name
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextSize = 11
-        nameLabel.Font = Enum.Font.GothamBold
-        nameLabel.TextWrapped = true
-        nameLabel.TextScaled = true
-        nameLabel.Parent = emoteFrame
-        
-        -- Preço
-        local priceLabel = Instance.new("TextLabel")
-        priceLabel.Size = UDim2.new(0.5, -2, 0, 15)
-        priceLabel.Position = UDim2.new(0, 5, 0, 100)
-        priceLabel.BackgroundTransparency = 1
-        priceLabel.Text = emote.price > 0 and "💰 " .. emote.price or "🎁 Grátis"
-        priceLabel.TextColor3 = emote.price > 0 and Color3.fromRGB(255, 200, 100) or Color3.fromRGB(100, 255, 100)
-        priceLabel.TextSize = 10
-        priceLabel.Font = Enum.Font.GothamBold
-        priceLabel.TextXAlignment = Enum.TextXAlignment.Left
-        priceLabel.Parent = emoteFrame
-        
-        -- Botão favoritar
-        local favButton = Instance.new("TextButton")
-        favButton.Size = UDim2.new(0, 20, 0, 20)
-        favButton.Position = UDim2.new(1, -25, 0, 5)
-        favButton.BackgroundTransparency = 1
-        favButton.Text = isFavorite and "★" or "☆"
-        favButton.TextColor3 = isFavorite and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(200, 200, 200)
-        favButton.TextSize = 18
-        favButton.Font = Enum.Font.GothamBold
-        favButton.Parent = emoteFrame
-        
-        favButton.MouseButton1Click:Connect(function()
-            toggleFavorite(emote.id)
-        end)
-        
-        -- Botão tocar emote
-        local playButton = Instance.new("TextButton")
-        playButton.Size = UDim2.new(1, 0, 1, 0)
-        playButton.BackgroundTransparency = 1
-        playButton.Text = ""
-        playButton.Parent = emoteFrame
-        
-        playButton.MouseButton1Click:Connect(function()
-            PlayEmote(emote.name, emote.id)
-            WindUI:Notify({
-                Title = "Emote",
-                Content = "Tocando: " .. emote.name,
-                Duration = 2,
-                Image = "success"
-            })
-        end)
-    end
-    
-    -- Adicionar ao tab
-    emoteScrollFrame.Parent = EmoteTab.Container or EmoteTab.Frame
 end
 
--- Inicializar botões de emote
-task.spawn(function()
-    recreateEmoteButtons()
-end)
+-- Slow Beast
+TabGame:AddToggle({
+    Name = "Slow Beast (Jump Spam)",
+    Default = false,
+    Flag = "RgSlowBeast",
+    Callback = function(state)
+        _G.SHub.Toggles.RgSlowBeast = state
+        local connection = _G.SHub.Connections.RgSlowBeast
 
--- ============= TAB SOBRE =============
-local AboutTab = Window:Tab({ Title = "Sobre", Icon = "info" })
-
-AboutTab:Label({ Title = "🎯 VisualWorks Premium" })
-AboutTab:Label({ Title = "📌 Versão: 3.0.0" })
-AboutTab:Label({ Title = "👤 Criado por:Lucaszmys" })
-AboutTab:Label({ Title = "📚 Library: WindUI" })
-AboutTab:Label({ Title = " " })
-AboutTab:Label({ Title = "⚡ Características:" })
-AboutTab:Label({ Title = "• Anti AFK Automático" })
-AboutTab:Label({ Title = "• FPS Cap Ajustável" })
-AboutTab:Label({ Title = "• 50+ Acessórios Raros" })
-AboutTab:Label({ Title = "• 20+ Faces Diferentes" })
-AboutTab:Label({ Title = "• Left Korblox Corrigido ✓" })
-AboutTab:Label({ Title = "• Custom Item - Qualquer ID!" })
-AboutTab:Label({ Title = "• EMOTES - " .. #Emotes .. " disponíveis!" })
-AboutTab:Label({ Title = "• SEM KEY SYSTEM - Aberto!" })
-
-AboutTab:Button({
-    Title = "❌ Destruir GUI",
-    Callback = function()
-        WindUI:Notify({
-            Title = "GUI",
-            Content = "Destruindo interface...",
-            Duration = 2,
-            Image = "info"
-        })
-        task.wait(1)
-        Window:Destroy()
+        if state then
+            if connection then connection:Disconnect() end
+            _G.SHub.Connections.RgSlowBeast = RunService.Heartbeat:Connect(function()
+                if not _G.SHub.Toggles.RgSlowBeast then
+                    _G.SHub.Connections.RgSlowBeast:Disconnect()
+                    _G.SHub.Connections.RgSlowBeast = nil
+                    return
+                end
+                local powersEvent = getBeastEvent("PowersEvent")
+                if powersEvent then
+                    pcall(function() powersEvent:FireServer("Jumped") end)
+                end
+            end)
+        else
+            if connection then connection:Disconnect() end
+        end
     end
 })
 
--- Notificação inicial
-WindUI:Notify({
-    Title = "VisualWorks Premium",
-    Content = "WindUI • Sem Key • " .. #Emotes .. " Emotes carregados!",
-    Duration = 6,
-    Image = "success"
+-- Untie Player
+TabGame:AddToggle({
+    Name = "Beast Untie Player",
+    Default = false,
+    Flag = "RgUntie",
+    Callback = function(state)
+        _G.SHub.Toggles.RgUntie = state
+        local connection = _G.SHub.Connections.RgUntie
+
+        if state then
+            if connection then connection:Disconnect() end
+            _G.SHub.Connections.RgUntie = RunService.Heartbeat:Connect(function()
+                if not _G.SHub.Toggles.RgUntie then
+                    _G.SHub.Connections.RgUntie:Disconnect()
+                    _G.SHub.Connections.RgUntie = nil
+                    return
+                end
+                local hammerEvent = getBeastEvent("HammerEvent")
+                if hammerEvent then
+                    pcall(function() hammerEvent:FireServer("HammerClick", true) end)
+                end
+            end)
+        else
+            if connection then connection:Disconnect() end
+        end
+    end
 })
 
-print("VisualWorks Premium - WindUI Edition carregado!")
-print("SEM KEY SYSTEM - Abre direto!")
-print("EMOTES - " .. #Emotes .. " emotes disponíveis!")
+-- ABA CREDITOS
+TabCredits:AddParagraph({
+    Name = "SourceOnce - Tracery",
+    Text = "Versão Beta 1.1.0 (Convertido)\n\nCriadores originais: Artsynia, fxengif\nAdaptado para redzLib V4\n\nObrigado a todos que apoiaram! ❤️"
+})
+
+-- ABA CONFIGURAÇÕES (Usando os próprios elementos da redzLib)
+-- A redzLib já tem opções de tema e configurações embutidas se usarmos o parâmetro Flags.
+-- Podemos adicionar um botão para recarregar o tema, se quisermos.
+
+-- Finalmente, seleciona a primeira aba
+-- (Não há um método nativo na redzLib para selecionar, mas a primeira aba criada é a primeira visível)
+
+print("Script carregado com sucesso!")
