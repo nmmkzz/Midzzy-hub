@@ -1,3 +1,11 @@
+--[[
+    Script: SourceOnce - Tracery [BETA] (Convertido para redzLib V4)
+    Criado originalmente por: Artsynia & fxengif
+    Adaptado para redzLib por: [Seu Nome]
+    Tema Personalizado: Preto & Vermelho / Azul Violeta
+]]
+
+-- === SERVIÇOS DO JOGO ===
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -5,14 +13,31 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
 
 local Player = Players.LocalPlayer
 local PlayerMouse = Player:GetMouse()
 
+-- === TEMAS PERSONALIZADOS ===
 local MyLibrary = {
     Themes = {        
         Main = {
-       
+            -- Tema Preto & Vermelho 
+            ["Color Hub 1"] = ColorSequence.new({
+                ColorSequenceKeypoint.new(0.00, Color3.fromRGB(10, 10, 10)),   -- preto  
+                ColorSequenceKeypoint.new(0.50, Color3.fromRGB(180, 0, 0)),  -- vermelho  
+                ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 60, 60)) -- vermelho claro  
+            }),  
+            ["Color Hub 2"] = Color3.fromRGB(0, 0, 0),  
+            ["Color Stroke"] = Color3.fromRGB(180, 0, 0),  
+            ["Color Theme"] = Color3.fromRGB(0, 0, 0),  
+            ["Color Text"] = Color3.fromRGB(180, 0, 0),  
+            ["Color Dark Text"] = Color3.fromRGB(180, 0, 0)
+        },
+        
         -- TEMA: Azul Violeta com Texto Branco
         ["Azul Violeta"] = {
             ["Color Hub 1"] = ColorSequence.new({
@@ -29,38 +54,25 @@ local MyLibrary = {
     },
 }
 
---[[
-    Script: SourceOnce - Tracery [BETA] (Convertido para redzLib V4)
-    Criado originalmente por: Artsynia & fxengif
-    Adaptado para redzLib por: [Seu Nome]
-    Nota: Funcionalidades que dependem de executors específicos (ex: getgenv, request, etc.) foram mantidas, mas podem precisar de ajustes.
-]]
-
+-- === CARREGA A REDZ LIB (COM OS TEMAS PERSONALIZADOS) ===
+-- A redzLib original será carregada, e depois vamos mesclar os temas personalizados
 local redzLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/speedvip1/Main/refs/heads/main/redz%20lib%20V4.lua"))()
 
--- Serviços do jogo
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local MarketplaceService = game:GetService("MarketplaceService")
-local VirtualUser = game:GetService("VirtualUser")
-local TweenService = game:GetService("TweenService")
+-- Mescla os temas personalizados com os temas existentes da redzLib
+for themeName, themeConfig in pairs(MyLibrary.Themes) do
+    redzLib.Themes[themeName] = themeConfig
+end
 
--- Variáveis do jogador local
+-- === VARIÁVEIS DO JOGADOR LOCAL ===
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:FindFirstChildWhichIsA("Humanoid")
 local RootPart = Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso")
 
--- Verificação do jogo (ID do jogo alvo)
-local TARGET_GAME_ID = 893973440 -- Substitua pelo ID do jogo correto, se necessário
+-- === VERIFICAÇÃO DO JOGO ===
+local TARGET_GAME_ID = 893973440 -- ID do jogo alvo
 if game.PlaceId ~= TARGET_GAME_ID then
-    -- Usa uma notificação simples, já que a da redzLib pode não estar pronta
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Jogo Incorreto",
         Text = "Este script não foi feito para este jogo.",
@@ -69,18 +81,18 @@ if game.PlaceId ~= TARGET_GAME_ID then
     return
 end
 
--- Tenta obter o nome do jogo
+-- === OBTÉM NOME DO JOGO ===
 local productInfo = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end) and {Name = "Jogo Desconhecido"} or {Name = "Jogo Desconhecido"}
 local GameName = productInfo.Name
 
--- Variáveis globais do script (para compartilhar entre funções)
+-- === VARIÁVEIS GLOBAIS DO SCRIPT ===
 _G.SHub = _G.SHub or {}
 _G.SHub.Toggles = _G.SHub.Toggles or {}
 _G.SHub.Values = _G.SHub.Values or {}
 _G.SHub.Connections = _G.SHub.Connections or {}
-_G.SHub.WPlr = _G.SHub.WPlr or {} -- Lista de players para ignorar no aura
+_G.SHub.WPlr = _G.SHub.WPlr or {} -- Lista de players para ignorar
 
--- Atualiza a referência do personagem quando ele morrer ou spawnar
+-- === ATUALIZA REFERÊNCIA DO PERSONAGEM ===
 local function updateCharacter()
     Character = LocalPlayer.Character
     if Character then
@@ -89,32 +101,25 @@ local function updateCharacter()
     end
 end
 _G.SHub.Connections.CharacterAdded = LocalPlayer.CharacterAdded:Connect(updateCharacter)
-updateCharacter() -- Chama uma vez para configurar no início
+updateCharacter()
 
--- Função para encontrar o RootPart ou Humanoid de um personagem
+-- === FUNÇÕES AUXILIARES ===
 local function findRoot(character, returnHumanoid)
     if not character then return nil end
     local humanoid = character:FindFirstChildWhichIsA("Humanoid")
     local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    if returnHumanoid then
-        return humanoid
-    else
-        return rootPart
-    end
+    return returnHumanoid and humanoid or rootPart
 end
 
--- Função para obter o container da UI (CoreGui ou PlayerGui)
 local function getGuiParent()
     return CoreGui:FindFirstChild("RobloxGui") or CoreGui or PlayerGui
 end
 
--- Função para arredondar números
 local function round(num, numDecimalPlaces)
     local mult = 10^(numDecimalPlaces or 0)
     return math.floor(num * mult + 0.5) / mult
 end
 
--- Obtém a lista de jogadores (exceto o local)
 local function getPlayerList(returnNames)
     local list = {}
     for _, p in pairs(Players:GetPlayers()) do
@@ -125,24 +130,7 @@ local function getPlayerList(returnNames)
     return list
 end
 
--- --- CRIAÇÃO DA JANELA PRINCIPAL ---
-local Window = redzLib:MakeWindow({
-    Title = "SourceOnce • Tracery [BETA]",
-    SubTitle = "by Artsynia & fxengif • Convertido",
-    LoadText = "Carregando " .. GameName .. "...",
-    DefaultTheme = "Default", -- Tema padrão
-    Flags = "SourceOnce_Flags.lua" -- Arquivo para salvar flags
-})
-
--- --- CRIAÇÃO DAS ABAS ---
-local TabMain = Window:MakeTab({Name = "Main", Icon = "menu"})
-local TabLocal = Window:MakeTab({Name = "Local", Icon = "user"})
-local TabAnti = Window:MakeTab({Name = "Anti & Notify", Icon = "user-check"})
-local TabGame = Window:MakeTab({Name = "Game & Ragebait", Icon = "server"})
-local TabCredits = Window:MakeTab({Name = "Project & Credit", Icon = "heart"})
-local TabSettings = Window:MakeTab({Name = "Settings", Icon = "settings"})
-
--- --- FUNÇÕES DE MAPA E ESP (Adaptadas) ---
+-- === FUNÇÕES DE MAPA E ESP ===
 local function GetCurrentMap()
     local map
     local currentMapVal = ReplicatedStorage:FindFirstChild("CurrentMap")
@@ -165,7 +153,7 @@ local espContainer = Instance.new("Folder")
 espContainer.Name = "SourceOnce_ESP"
 espContainer.Parent = getGuiParent()
 
--- Função para criar um BillboardGui
+-- Função para criar BillboardGui
 local function createBillboard(part, id, espParent, color)
     local billboard = espParent:FindFirstChild(id)
     if billboard then billboard:Destroy() end
@@ -223,7 +211,37 @@ local function applyHighlight(part, color)
     return hl
 end
 
--- --- CONTEÚDO DAS ABAS ---
+-- Função para encontrar eventos do Beast
+local function getBeastEvent(eventType)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if eventType == "HammerEvent" and p.Character:FindFirstChild("Hammer") then
+                return p.Character:FindFirstChild(eventType, true)
+            elseif eventType == "PowersEvent" and p.Character:FindFirstChild("BeastPowers") then
+                return p.Character:FindFirstChild(eventType, true)
+            end
+        end
+    end
+end
+
+-- === CRIAÇÃO DA JANELA PRINCIPAL (COM TEMA PADRÃO "Main") ===
+local Window = redzLib:MakeWindow({
+    Title = "SourceOnce • Tracery [BETA]",
+    SubTitle = "by Artsynia & fxengif • Convertido",
+    LoadText = "Carregando " .. GameName .. "...",
+    DefaultTheme = "Main", -- Tema padrão (Preto & Vermelho)
+    Flags = "SourceOnce_Flags.lua"
+})
+
+-- === CRIAÇÃO DAS ABAS ===
+local TabMain = Window:MakeTab({Name = "Main", Icon = "menu"})
+local TabLocal = Window:MakeTab({Name = "Local", Icon = "user"})
+local TabAnti = Window:MakeTab({Name = "Anti & Notify", Icon = "user-check"})
+local TabGame = Window:MakeTab({Name = "Game & Ragebait", Icon = "server"})
+local TabCredits = Window:MakeTab({Name = "Project & Credit", Icon = "heart"})
+local TabSettings = Window:MakeTab({Name = "Settings", Icon = "settings"})
+
+-- === CONTEÚDO DAS ABAS ===
 
 -- ABA MAIN
 TabMain:AddSection({Name = "ESP"})
@@ -243,7 +261,6 @@ TabMain:AddToggle({
                 if not _G.SHub.Toggles.EspPlayer then
                     _G.SHub.Connections.EspPlayer:Disconnect()
                     _G.SHub.Connections.EspPlayer = nil
-                    -- Limpar ESP
                     for _, child in pairs(espContainer:GetChildren()) do
                         if child.Name:find("Player_") then child:Destroy() end
                     end
@@ -265,7 +282,6 @@ TabMain:AddToggle({
                     local root = findRoot(char)
                     if not head or not root or not RootPart then continue end
 
-                    -- Determinar cor baseado no estado (simplificado)
                     local color = Color3.fromRGB(200, 200, 200)
                     local stats = player:FindFirstChild("TempPlayerStatsModule")
                     if stats then
@@ -581,19 +597,6 @@ TabAnti:AddToggle({
 -- ABA GAME & RAGEBAIT
 TabGame:AddSection({Name = "Ragebait Beast"})
 
--- Função para encontrar eventos do Beast
-local function getBeastEvent(eventType) -- eventType = "HammerEvent" or "PowersEvent"
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if eventType == "HammerEvent" and p.Character:FindFirstChild("Hammer") then
-                return p.Character:FindFirstChild(eventType, true)
-            elseif eventType == "PowersEvent" and p.Character:FindFirstChild("BeastPowers") then
-                return p.Character:FindFirstChild(eventType, true)
-            end
-        end
-    end
-end
-
 -- Slow Beast
 TabGame:AddToggle({
     Name = "Slow Beast (Jump Spam)",
@@ -653,14 +656,34 @@ TabGame:AddToggle({
 -- ABA CREDITOS
 TabCredits:AddParagraph({
     Name = "SourceOnce - Tracery",
-    Text = "Versão Beta 1.1.0 (Convertido)\n\nCriadores originais: Artsynia, fxengif\nAdaptado para redzLib V4\n\nObrigado a todos que apoiaram! ❤️"
+    Text = "Versão Beta 1.1.0 (Convertido)\n\nCriadores originais: Artsynia, fxengif\nAdaptado para redzLib V4\n\nTemas personalizados disponíveis!\n\nObrigado a todos que apoiaram! ❤️"
 })
 
--- ABA CONFIGURAÇÕES (Usando os próprios elementos da redzLib)
--- A redzLib já tem opções de tema e configurações embutidas se usarmos o parâmetro Flags.
--- Podemos adicionar um botão para recarregar o tema, se quisermos.
+-- ABA CONFIGURAÇÕES
+TabSettings:AddSection({Name = "Temas"})
 
--- Finalmente, seleciona a primeira aba
--- (Não há um método nativo na redzLib para selecionar, mas a primeira aba criada é a primeira visível)
+-- Dropdown para selecionar tema
+TabSettings:AddDropdown({
+    Name = "Selecionar Tema",
+    Options = {"Main", "Azul Violeta"},
+    Default = "Main",
+    Flag = "ThemeSelector",
+    Callback = function(selected)
+        redzLib:SetTheme(selected)
+    end
+})
 
-print("Script carregado com sucesso!")
+-- Slider para transparência
+TabSettings:AddSlider({
+    Name = "Transparência da UI",
+    MinValue = 0,
+    MaxValue = 0.5,
+    Default = 0.1,
+    Increase = 0.01,
+    Flag = "UITransparency",
+    Callback = function(value)
+        redzLib:SetTransparency(value)
+    end
+})
+
+print("Script carregado com sucesso! Use o tema 'Azul Violeta' para texto branco.")
